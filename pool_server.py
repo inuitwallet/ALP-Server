@@ -1,5 +1,4 @@
-import sqlite3
-from threading import Timer, Thread
+from threading import Timer
 
 import bottle
 from bottle_sqlite import SQLitePlugin
@@ -32,10 +31,13 @@ app.install(SQLitePlugin(dbfile='pool.db', keyword='db'))
 wrappers = {'bittrex': Bittrex(), 'bter': BTER(), 'ccedk': CCEDK()}
 
 # Set up a JSONRPC connection to nud
-rpc = AuthServiceProxy("http://{}:{}@{}:{}".format(app.config['rpc.user'],
-                                                   app.config['rpc.pass'],
-                                                   app.config['rpc.host'],
-                                                   app.config['rpc.port']))
+try:
+    rpc = AuthServiceProxy("http://{}:{}@{}:{}".format(app.config['rpc.user'],
+                                                       app.config['rpc.pass'],
+                                                       app.config['rpc.host'],
+                                                       app.config['rpc.port']))
+except JSONRPCException as e:
+    print "Failed to connect to Nud: {}".format(e.message)
 
 
 def check_headers(headers):
@@ -165,6 +167,14 @@ def liquidity(db):
                    (user, tier, str(order['id']), float(order['amount']),
                     str(order['type']), exchange, unit))
     return {'success': True, 'message': 'orders saved for validation'}
+
+
+@app.get('/exchanges')
+def exchanges():
+    """
+    Show the app.config as it pertains to the supported exchanges
+    :return:
+    """
 
 
 @app.get('/status')
