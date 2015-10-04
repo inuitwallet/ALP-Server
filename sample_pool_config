@@ -1,5 +1,6 @@
 [pool]
 name=pool
+grant_address=Bxxxxxxxxxxxxxxxxx
 
 [rpc]
 user=nu
