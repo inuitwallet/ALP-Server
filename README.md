@@ -67,3 +67,9 @@ POST /liquidity
    "unit": The target currency" 
 }
 ```
+The ALP server also exposes some endpoints that can be used for statistics collection 
+or logging. These are as follows:  
+```
+GET /exchanges
+Shows an object containing the exchanges supported by this ALP and the parameters of each
+```
