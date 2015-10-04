@@ -42,6 +42,9 @@ python/nubot/res/frozen-funds/*
 pool.db
 test_client.py
 NOTES
+exchange_config
+pool_config
+
 # PyInstaller
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
