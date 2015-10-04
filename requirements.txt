@@ -1,0 +1,4 @@
+bottle
+bottle-sqlite
+python-bitcoinrpc
+ws4py
