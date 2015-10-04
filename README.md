@@ -57,3 +57,13 @@ POST /register
     "unit": "A supported currency code"  
 }  
 ```
+```
+POST /liquidity
+{
+   "user": "The exchange API public Key used to 'register'",
+   "req": "A dictionary containing the parameters required by the exchange API",
+   "sign": "The result of signing req with the exchange API private key",
+   "exchange": "The target exchange",
+   "unit": The target currency" 
+}
+```
