@@ -3,6 +3,8 @@ import random
 import unittest
 import sqlite3
 import bottle
+import sys
+sys.path.append('../')
 import credit
 import database
 import load_config
