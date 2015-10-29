@@ -1,4 +1,5 @@
 import logging
+import os
 import random
 import unittest
 import sqlite3
@@ -65,6 +66,13 @@ class TestCredits(unittest.TestCase):
                                'currency'))
         conn.commit()
         conn.close()
+
+    def tearDown(self):
+        """
+        Remove database file
+        :return:
+        """
+        os.remove('pool.db')
 
     def test_get_total_liquidity(self):
         """
