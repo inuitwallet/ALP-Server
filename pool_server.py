@@ -94,7 +94,7 @@ def register(db):
         address = request.json.get('address')
         exchange = request.json.get('exchange')
         unit = request.json.get('unit')
-    except ValueError:
+    except AttributeError:
         log.warn('no json found in request')
         return {'success': False, 'message': 'no json found in request'}
     # check for missing parameters
@@ -164,7 +164,7 @@ def liquidity(db):
         exchange = request.json.get('exchange')
         unit = request.json.get('unit')
         req = request.json.get('req')
-    except ValueError:
+    except AttributeError:
         log.warn('no json found in request')
         return {'success': False, 'message': 'no json found in request'}
     if not user:
