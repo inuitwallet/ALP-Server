@@ -17,15 +17,17 @@ It also uses that data to submit liquidity info back to Nu
 """
 
 
-def credit(app, rpc):
+def credit(app, rpc, log, start_timer=True):
     """
     This runs every minute and calculates the total liquidity on order (tier 1) and
     each users proportion of it
     :return:
     """
     # Set the timer going again
-    Timer(60.0, credit).start()
-    print 'Starting Credit'
+    if start_timer:
+        Timer(60.0, credit, kwargs={'app': app, 'rpc': rpc, 'log': log}).start()
+    log.info('Starting Credit')
+    credit_time = int(time.time())
     conn = sqlite3.connect('pool.db')
     db = conn.cursor()
     # Get all the orders from the database.
@@ -34,14 +36,14 @@ def credit(app, rpc):
     db.execute('DELETE FROM orders')
     conn.commit()
     conn.close()
-    # Get the total for tier 1 liquidity for each exchange/unit combination
-    total_tier_1 = get_total_liquidity(app, all_orders, '1')
+    # Get the total for tier 1 liquidity for each exchange/unit/side combination
+    total_tier_1 = get_total_liquidity(app, all_orders, 'tier_1')
     # Get the total for tier 2 liquidity also
-    total_tier_2 = get_total_liquidity(app, all_orders, '2')
+    total_tier_2 = get_total_liquidity(app, all_orders, 'tier_2')
 
     # We've calculated the totals so submit them as liquidity_info
     Thread(target=liquidity_info, kwargs={'rpc': rpc, 'tier_1': total_tier_1,
-                                          'tier_2': total_tier_2})
+                                          'tier_2': total_tier_2, 'log': log})
 
     # build the orders into a dictionary of lists based on the user api key
     user_orders = {}
@@ -56,13 +58,17 @@ def credit(app, rpc):
         # for each user get all the orders
         orders = user_orders[user]
         # build a dictionary to hold the tier liquidity amounts
-        # This will end up being a multi dimensioned dictionary
-        # Each tier can contain exchanges which in turn contain units. These are the
-        # keys used for the total liquidity and allow us to set different tolerances
-        # and rewards for different pairs on different exchanges
-        tiers = {'1': {}, '2': {}}
+        provided_liquidity = {'tier_1': {}, 'tier_2': {}}
+        for tier in provided_liquidity:
+            for exchange in app.config['exchanges']:
+                provided_liquidity[tier][exchange] = {}
+                for unit in app.config['{}.units'.format(exchange)]:
+                    provided_liquidity[tier][exchange][unit] = {}
+                    for side in ['ask', 'bid']:
+                        provided_liquidity[tier][exchange][unit][side] = 0.00
+        # parse the orders
         for order in orders:
-            # Hash the order on order id, amount, type exchange and unit to avoid
+            # Hash the order on order id, amount, side, exchange and unit to avoid
             # duplication
             order_hash = '{}.{}.{}.{}.{}'.format(order[3], order[4], order[5],
                                                  order[6], order[7])
@@ -73,30 +79,24 @@ def credit(app, rpc):
             credited_orders.append(order_hash)
             # these variables makes it easier to see what's going on
             tier = order[2]
-            order_amount = order[4]
-            side = order[5]
             exchange = order[6]
             unit = order[7]
-            # check that we are recording liquidity for the current exchange
-            if exchange not in tiers[tier]:
-                tiers[tier][exchange] = {}
-            # do the same for the current unit
-            if unit not in tiers[tier][exchange]:
-                tiers[tier][exchange][unit] = {}
-            # and again for the side
-            if side not in tiers[tier][exchange][unit]:
-                tiers[tier][exchange][unit][side] = 0.0
-            # add the order amount to the liquidity for this exchange/unit/side
-            tiers[tier][exchange][unit][side] += float(order_amount)
+            side = order[5]
+            order_amount = order[4]
+
+            # add the order amount to the liquidity provided
+            provided_liquidity[tier][exchange][unit][side] += float(order_amount)
 
         # Calculate the percentage of the tier 1 liquidity that this user provides
         # for each exchange/unit combination
-        calculate_rewards(app, '1', tiers, total_tier_1, user)
+        calculate_rewards(app, 'tier_1', provided_liquidity, total_tier_1, user,
+                          credit_time)
 
         # Record for tier 2 orders also to allow for user reports
         # There is no reward for tier 2
-        calculate_rewards(app, '2', tiers, total_tier_2, user)
-
+        calculate_rewards(app, 'tier_2', provided_liquidity, total_tier_2, user,
+                          credit_time)
+    log.info('Credit finished')
     return
 
 
@@ -108,6 +108,7 @@ def get_total_liquidity(app, orders, tier):
     :param tier:
     :return:
     """
+    # build the liquidity object
     liquidity = {}
     for exchange in app.config['exchanges']:
         if exchange not in liquidity:
@@ -116,44 +117,41 @@ def get_total_liquidity(app, orders, tier):
             if unit not in liquidity[exchange]:
                 liquidity[exchange][unit] = {}
             for side in ['ask', 'bid']:
-                total = 0.00
-                for order in orders:
-                    # exclude based on tier
-                    if order[2] != tier:
-                        continue
-                    # exclude orders not for this exchange/unit
-                    if order[6] != exchange:
-                        continue
-                    if order[7] != unit:
-                        continue
-                    if order[5] != side:
-                        continue
-                    # increase the total liquidity by the amount in the order
-                    total += float(order[4])
-                    if side not in liquidity[exchange][unit]:
-                        liquidity[exchange][unit][side] = total
+                liquidity[exchange][unit][side] = 0.00
+    # parse the orders and update the liquidity object accordingly
+    for order in orders:
+        # only add orders for the current tier
+        if order[2] != tier:
+            continue
+        # get the order details
+        exchange = order[6]
+        unit = order[7]
+        side = order[5]
+        liquidity[exchange][unit][side] += float(order[4])
     return liquidity
 
 
-def calculate_rewards(app, tier, tiers, total, user):
+def calculate_rewards(app, tier, provided_liquidity, total, user, credit_time):
     """
     Calculate the rewards for
     :param tier:
     :return:
     """
 
-    for exchange in tiers[tier]:
-        for unit in tiers[tier][exchange]:
-            for side in tiers[tier][exchange][unit]:
-                percentage = (float(tiers[tier][exchange][unit][side]) /
-                              float(total[exchange][unit][side]))
+    for exchange in provided_liquidity[tier]:
+        for unit in provided_liquidity[tier][exchange]:
+            for side in provided_liquidity[tier][exchange][unit]:
+                provided = float(provided_liquidity[tier][exchange][unit][side])
+                total_l = float(total[exchange][unit][side])
+                if total_l <= 0.00:
+                    continue
+                percentage = (provided / total_l) if total_l > 0.00 else 0.00
                 # Use the percentage to calculate the reward for this round
-                if tier == '1':
-                    reward = percentage * app.config['{}.{}.{}.reward'.format(exchange,
-                                                                              unit,
-                                                                              side)]
-                else:
-                    reward = 0.00 # No reward for tier 2
+                reward = percentage * app.config['{}.{}.{}.{}'
+                                                 '.reward'.format(exchange,
+                                                                  unit,
+                                                                  side,
+                                                                  tier)]
                 # save the details to the database
                 # set the connection here to keep it open as short as possible
                 conn = sqlite3.connect('pool.db')
@@ -161,15 +159,14 @@ def calculate_rewards(app, tier, tiers, total, user):
                 db.execute("INSERT INTO credits (time,user,exchange,unit,tier,"
                            "side,provided,total,percentage,reward,paid) VALUES  (?,?,?,"
                            "?,?,?,?,?,?,?,?)",
-                           (time.time(), user, exchange, unit, tier, side,
-                            tiers[tier][exchange][unit][side],
-                            total[exchange][unit][side], (percentage * 100), reward, 0))
+                           (credit_time, user, exchange, unit, tier, side, provided,
+                            total_l, (percentage * 100), reward, 0))
                 conn.commit()
                 conn.close()
     return
 
 
-def liquidity_info(app, rpc, tier_1, tier_2):
+def liquidity_info(app, rpc, tier_1, tier_2, log):
     """
     Calculate the current amount of liquidity in tiers 1 and 2 and submit them to Nu
     :return:
@@ -184,7 +181,7 @@ def liquidity_info(app, rpc, tier_1, tier_2):
                                   tier_1[exchange][unit]['ask'],
                                   app.config['pool.grant_address'], identifier)
             except JSONRPCException as e:
-                print 'Sending tier 1 liquidity info failed: {}'.format(e.message)
+                log.error('Sending tier 1 liquidity info failed: {}'.format(e.message))
 
     for exchange in tier_2:
         for unit in tier_2[exchange]:
@@ -196,4 +193,4 @@ def liquidity_info(app, rpc, tier_1, tier_2):
                                   tier_2[exchange][unit]['ask'],
                                   app.config['pool.grant_address'], identifier)
             except JSONRPCException as e:
-                print 'Sending tier 2 liquidity info failed: {}'.format(e.message)
+                log.error('Sending tier 2 liquidity info failed: {}'.format(e.message))
