@@ -1,4 +1,4 @@
 bottle
 bottle-sqlite
 python-bitcoinrpc
-ws4py
+wsgi-request-logger
