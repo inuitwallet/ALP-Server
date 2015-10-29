@@ -1,0 +1,24 @@
+{
+    "exchange": {
+        "currency": {
+            "ask": {
+                "tolerance": 0.0105,
+                "tier_1": {
+                    "reward": 0.25
+                },
+                "tier_2": {
+                    "reward": 0.01
+                }
+            },
+            "bid": {
+                "tolerance": 0.0105,
+                "tier_1": {
+                    "reward": 0.15
+                },
+                "tier_2": {
+                    "reward": 0.00
+                }
+            }
+        }
+    }
+}
