@@ -1,6 +1,8 @@
 # NuBot ALP Server
 
 This is the server part of the ALP (Automated Liquidity Pool) system.  
+
+[![Build Status](https://travis-ci.org/inuitwallet/ALP-Server.svg?branch=master)](https://travis-ci.org/inuitwallet/ALP-Server)
   
 ### What is an ALP?  
 Providing liquidity for the Nu network is integral to the security of the $1 peg of 
