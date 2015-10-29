@@ -43,6 +43,7 @@ pool.db
 test_client.py
 NOTES
 exchange_config
+!tests/exchange_config
 pool_config
 
 # PyInstaller
