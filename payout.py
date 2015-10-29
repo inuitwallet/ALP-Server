@@ -6,14 +6,14 @@ from bitcoinrpc.authproxy import JSONRPCException
 __author__ = 'sammoth'
 
 
-def pay(rpc):
+def pay(rpc, log):
     """
     Pay all users who have a balance > 1 NBT
     :return:
     """
     # reset timer
-    Timer(86400.0, pay).start()
-    print 'Payout'
+    Timer(86400.0, pay, kwargs={'rpc': rpc, 'log': log}).start()
+    log.info('Payout')
     # get the credit details from the database
     conn = sqlite3.connect('pool.db')
     db = conn.cursor()
@@ -34,5 +34,6 @@ def pay(rpc):
     # SendMany from nud. Report any error to log output
     try:
         rpc.sendmany("", "'{}'".format(json.dumps(user_rewards).replace(' ', '')))
+        log.info('Payout succeeded')
     except JSONRPCException as e:
-        print 'Payout failed: {}'.format(e.message)
+        log.error('Payout failed: {}'.format(e.message))
