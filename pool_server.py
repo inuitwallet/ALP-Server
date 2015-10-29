@@ -41,12 +41,6 @@ rotating_file.setFormatter(formatter)
 log.addHandler(rotating_file)
 log.addHandler(stream)
 
-log.info('load pool config')
-app.config.load_config('pool_config')
-
-log.info('load exchange config')
-load_config.load(app, 'exchange_config')
-
 # Create the database if one doesn't exist
 database.build(log)
 
@@ -55,12 +49,6 @@ app.install(SQLitePlugin(dbfile='pool.db', keyword='db'))
 
 # Create the Exchange wrapper objects
 wrappers = {'bittrex': Bittrex(), 'bter': BTER(), 'ccedk': CCEDK()}
-
-log.info('set up a json-rpc connection with nud')
-rpc = AuthServiceProxy("http://{}:{}@{}:{}".format(app.config['rpc.user'],
-                                                   app.config['rpc.pass'],
-                                                   app.config['rpc.host'],
-                                                   app.config['rpc.port']))
 
 
 def check_headers(headers):
@@ -73,6 +61,15 @@ def check_headers(headers):
         log.warn('invalid header - need app/json')
         return False
     return True
+
+
+@app.get('/')
+def root():
+    """
+    Show a default page with info about the server health
+    :return:
+    """
+    return {'success': True, 'message': 'ALP Server is operational'}
 
 
 @app.post('/register')
@@ -327,9 +324,21 @@ def error404(error):
 
 
 if __name__ == '__main__':
+
+    log.info('load pool config')
+    app.config.load_config('pool_config')
+
+    log.info('load exchange config')
+    load_config.load(app, 'exchange_config')
+
+    log.info('set up a json-rpc connection with nud')
+    rpc = AuthServiceProxy("http://{}:{}@{}:{}".format(app.config['rpc.user'],
+                                                       app.config['rpc.pass'],
+                                                       app.config['rpc.host'],
+                                                       app.config['rpc.port']))
     # Set the timer for credits
     Timer(60.0, credit.credit, kwargs={'app': app, 'rpc': rpc, 'log': log}).start()
     # Set the timer for payouts
     Timer(86400.0, payout.pay, kwargs={'rpc': rpc, 'log': log}).start()
     # Run the server
-    run(server, host='localhost', port=3333, debug=True)
+    run(server, host='localhost', port=int(os.environ.get("PORT", 3333)), debug=True)
