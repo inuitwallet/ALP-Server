@@ -66,6 +66,40 @@ class TestCredits(unittest.TestCase):
         conn.commit()
         conn.close()
 
+    def test_get_total_liquidity(self):
+        """
+        Test the get_total_liquidity function
+        :return:
+        """
+        # get the orders from the database
+        conn = sqlite3.connect('pool.db')
+        c = conn.cursor()
+        orders = c.execute("SELECT * FROM orders").fetchall()
+
+        # get the data for tier_1 as calculated by the test function
+        tier_1_total = credit.get_total_liquidity(self.app, orders, 'tier_1')
+        # calculate the total from our test data
+        # (test data is always for one exchange and currency)
+        real_tier_1_total = {'bid': 0.00, 'ask': 0.00}
+        for user in self.test_data['tier_1']:
+            real_tier_1_total['bid'] += self.test_data['tier_1'][user]['bid']
+            real_tier_1_total['ask'] += self.test_data['tier_1'][user]['ask']
+        self.assertEqual(tier_1_total['exchange']['currency']['bid'],
+                         real_tier_1_total['bid'])
+        self.assertEqual(tier_1_total['exchange']['currency']['ask'],
+                         real_tier_1_total['ask'])
+
+        # same for tier 2
+        tier_2_total = credit.get_total_liquidity(self.app, orders, 'tier_2')
+        real_tier_2_total = {'bid': 0.00, 'ask': 0.00}
+        for user in self.test_data['tier_2']:
+            real_tier_2_total['bid'] += self.test_data['tier_2'][user]['bid']
+            real_tier_2_total['ask'] += self.test_data['tier_2'][user]['ask']
+        self.assertEqual(tier_2_total['exchange']['currency']['bid'],
+                         real_tier_2_total['bid'])
+        self.assertEqual(tier_2_total['exchange']['currency']['ask'],
+                         real_tier_2_total['ask'])
+
     def test_crediting(self):
         """
         Test the credit function
