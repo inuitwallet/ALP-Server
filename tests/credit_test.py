@@ -25,6 +25,8 @@ class TestCredits(unittest.TestCase):
                                       datefmt='%y-%m-%d %H:%M:%S')
         stream.setFormatter(formatter)
         self.log.addHandler(stream)
+        self.log.debug('TestCredits testcase')
+        self.log.debug('running setUp')
         # build the database if it doesn't exist
         database.build(self.log)
         # set us up a bottle application with correct config
@@ -66,12 +68,14 @@ class TestCredits(unittest.TestCase):
                                'currency'))
         conn.commit()
         conn.close()
+        self.log.debug('ending setUp')
 
     def tearDown(self):
         """
         Remove database file
         :return:
         """
+        self.log.debug('running tearDown')
         os.remove('pool.db')
 
     def test_get_total_liquidity(self):
@@ -79,6 +83,7 @@ class TestCredits(unittest.TestCase):
         Test the get_total_liquidity function
         :return:
         """
+        self.log.debug('running test_get_total_liquidity')
         # get the orders from the database
         conn = sqlite3.connect('pool.db')
         c = conn.cursor()
@@ -107,12 +112,14 @@ class TestCredits(unittest.TestCase):
                          real_tier_2_total['bid'])
         self.assertEqual(tier_2_total['exchange']['currency']['ask'],
                          real_tier_2_total['ask'])
+        self.log.debug('ending test_get_total_liquidity')
 
     def test_crediting(self):
         """
         Test the credit function
         :return:
         """
+        self.log.debug('running test_crediting')
         # calculate the correct values
         total = {'tier_1': {'bid': 0.00, 'ask': 0.00},
                  'tier_2': {'bid': 0.00, 'ask': 0.00}}
@@ -147,7 +154,7 @@ class TestCredits(unittest.TestCase):
                                                                               cred[5])]
             # Asert almost equal to avoid rounding errors at 10 d.p.
             self.assertAlmostEqual(cred[10], this_reward, 15)
-
+        self.log.debug('ending test_crediting')
 
 
 
