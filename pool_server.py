@@ -68,7 +68,7 @@ rpc = AuthServiceProxy("http://{}:{}@{}:{}".format(app.config['rpc.user'],
                                                    app.config['rpc.host'],
                                                    app.config['rpc.port']))
 
-if app.config['pool.run_threads'] == 'True':
+if os.environ.get('RUN_TIMERS', False):
     # Set the timer for credits
     Timer(60.0, credit.credit, kwargs={'app': app, 'rpc': rpc, 'log': log}).start()
     # Set the timer for payouts
@@ -303,25 +303,31 @@ def get_price():
     return 1234
 
 
-#@app.error(code=500)
-#def error500(error):
-#    return json.dumps({'success': False, 'message': '500 error: {}'.format(error)})
+@app.error(code=500)
+def error500(error):
+    return json.dumps({'success': False, 'message': '500 error'})
 
 
 @app.error(code=502)
 def error502(error):
-    return json.dumps({'success': False, 'message': '502 error: {}'.format(error)})
+    return json.dumps({'success': False, 'message': '502 error'})
 
 
 @app.error(code=503)
 def error503(error):
-    return json.dumps({'success': False, 'message': '503 error: {}'.format(error)})
+    return json.dumps({'success': False, 'message': '503 error'})
 
 
 @app.error(code=404)
 def error404(error):
-    return json.dumps({'success': False, 'message': '404 {} not found: {}'.format(
-        request.url, error)})
+    return json.dumps({'success': False, 'message': '404 {} not found'
+                                                    ''.format(request.url)})
+
+
+@app.error(code=405)
+def error405(error):
+    return json.dumps({'success': False, 'message': '405 error. '
+                                                    'Incorrect HTTP method used'})
 
 
 if __name__ == '__main__':
