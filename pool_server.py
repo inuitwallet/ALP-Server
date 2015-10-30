@@ -19,6 +19,7 @@ from exchanges import Bittrex, BTER, CCEDK, Poloniex, TestExchange
 __author__ = 'sammoth'
 
 app = bottle.Bottle()
+bottle.debug(True)
 
 # Create the log directory
 if not os.path.isdir('logs'):
@@ -54,6 +55,24 @@ wrappers = {'bittrex': Bittrex(),
             'ccedk': CCEDK(),
             'poloniex': Poloniex(),
             'test_exchange': TestExchange()}
+
+log.info('load pool config')
+app.config.load_config('pool_config')
+
+log.info('load exchange config')
+load_config.load(app, 'exchange_config')
+
+log.info('set up a json-rpc connection with nud')
+rpc = AuthServiceProxy("http://{}:{}@{}:{}".format(app.config['rpc.user'],
+                                                   app.config['rpc.pass'],
+                                                   app.config['rpc.host'],
+                                                   app.config['rpc.port']))
+
+if app.config['pool.run_threads'] == 'True':
+    # Set the timer for credits
+    Timer(60.0, credit.credit, kwargs={'app': app, 'rpc': rpc, 'log': log}).start()
+    # Set the timer for payouts
+    Timer(86400.0, payout.pay, kwargs={'rpc': rpc, 'log': log}).start()
 
 
 def check_headers(headers):
@@ -116,11 +135,15 @@ def register(db):
         log.warn('no unit provided')
         return {'success': False, 'message': 'no unit provided'}
     # Check for a valid address
+    if address[0] != 'B':
+        log.warn('%s is not a valid NBT address. No \'B\'', address)
+        return {'success': False, 'message': '{} is not a valid NBT address. It '
+                                             'should start with a \'B\''.format(address)}
     address_check = AddressCheck()
-    if address[0] != 'B' and not address_check.check_checksum(address):
-        log.warn('%s is not a valid NBT address', address)
-        return {'success': False, 'message': '{} is not a valid NBT address'.format(
-            address)}
+    if not address_check.check_checksum(address):
+        log.warn('%s is not a valid NBT address. Bad checksum', address)
+        return {'success': False, 'message': '{} is not a valid NBT address. The '
+                                             'checksum doesn\'t match'.format(address)}
     # Check that the requests exchange is supported by the server
     if exchange not in app.config['exchanges']:
         log.warn('%s is not supported', exchange)
@@ -280,19 +303,19 @@ def get_price():
     return 1234
 
 
-@app.error(code=500)
-def error500(error):
-    return json.dumps({'success': False, 'message': '500 error: {}'.formet(error)})
+#@app.error(code=500)
+#def error500(error):
+#    return json.dumps({'success': False, 'message': '500 error: {}'.format(error)})
 
 
 @app.error(code=502)
 def error502(error):
-    return json.dumps({'success': False, 'message': '502 error: {}'.formet(error)})
+    return json.dumps({'success': False, 'message': '502 error: {}'.format(error)})
 
 
 @app.error(code=503)
 def error503(error):
-    return json.dumps({'success': False, 'message': '503 error: {}'.formet(error)})
+    return json.dumps({'success': False, 'message': '503 error: {}'.format(error)})
 
 
 @app.error(code=404)
@@ -302,21 +325,5 @@ def error404(error):
 
 
 if __name__ == '__main__':
-
-    log.info('load pool config')
-    app.config.load_config('pool_config')
-
-    log.info('load exchange config')
-    load_config.load(app, 'exchange_config')
-
-    log.info('set up a json-rpc connection with nud')
-    rpc = AuthServiceProxy("http://{}:{}@{}:{}".format(app.config['rpc.user'],
-                                                       app.config['rpc.pass'],
-                                                       app.config['rpc.host'],
-                                                       app.config['rpc.port']))
-    # Set the timer for credits
-    Timer(60.0, credit.credit, kwargs={'app': app, 'rpc': rpc, 'log': log}).start()
-    # Set the timer for payouts
-    Timer(86400.0, payout.pay, kwargs={'rpc': rpc, 'log': log}).start()
     # Run the server
     run(server, host='localhost', port=int(os.environ.get("PORT", 3333)), debug=True)
