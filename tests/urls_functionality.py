@@ -4,7 +4,8 @@ import os
 from webtest import TestApp
 import sys
 sys.path.append('../')
-os.remove('pool.db')
+if os.path.isfile('pool.db'):
+    os.remove('pool.db')
 import pool_server
 
 __author__ = 'sammoth'
