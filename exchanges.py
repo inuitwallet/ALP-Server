@@ -1,4 +1,5 @@
 #! /usr/bin/env python
+import random
 
 import sys
 import json
@@ -9,7 +10,7 @@ import httplib
 import datetime
 
 
-class Bittrex:
+class Bittrex(object):
 
     def __init__(self):
         self.placed = {}
@@ -66,7 +67,7 @@ class Bittrex:
         return orders
 
 
-class Poloniex:
+class Poloniex(object):
 
     def __init__(self):
         pass
@@ -90,7 +91,7 @@ class Poloniex:
                  } for order in response]
 
 
-class CCEDK:
+class CCEDK(object):
 
     def __init__(self):
         self.pair_id = {}
@@ -142,7 +143,7 @@ class CCEDK:
         return validation
 
 
-class BTER:
+class BTER(object):
 
     def __init__(self):
         pass
@@ -153,7 +154,7 @@ class BTER:
     def validate_request(self, key, unit, data, sign):
         headers = {'Sign': sign, 'Key': key, "Content-type": "application/x-www-form-urlencoded"}
         response = self.https_request('orderlist', urllib.urlencode(data), headers, timeout=15)
-        if not 'result' in response or not response['result']:
+        if 'result' not in response or not response['result']:
             response['error'] = response['msg'] if 'msg' in response else 'invalid response: %s' % str(response)
             return response
         if not response['orders']:
@@ -165,3 +166,21 @@ class BTER:
                     'amount': float(order['amount']) / (
                         1.0 if order['buy_type'].lower() == unit.lower() else float(order['rate'])),
                 } for order in response['orders'] if order['pair'] == 'nbt_' + unit.lower()]
+
+
+class TestExchange(object):
+
+    def __init__(self):
+        pass
+
+    def __repr__(self):
+        return 'test_exchange'
+
+    def validate_request(self, key, unit, data, sign):
+        orders = []
+        for x in xrange(10):
+            orders.append({'price': (1234 + random.randint(-5, 5)),
+                           'id': (x + random.randint(0, 250)),
+                           'amount': 10,
+                           'type': 'bid' if int(x) % 2 == 0 else 'ask'})
+        return orders
