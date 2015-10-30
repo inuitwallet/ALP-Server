@@ -1,6 +1,6 @@
 {
-    "exchange": {
-        "currency": {
+    "test_exchange": {
+        "btc": {
             "ask": {
                 "tolerance": 0.0105,
                 "tier_1": {
