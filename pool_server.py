@@ -254,15 +254,15 @@ def exchanges():
                                                                     ''.format(exchange,
                                                                               unit)],
                                             'tier_1': {
-                                                'reward': app.config['{}.{}.{}.'
-                                                                     'ask.reward'
+                                                'reward': app.config['{}.{}.ask.{}'
+                                                                     '.reward'
                                                                      ''.format(exchange,
                                                                                unit,
                                                                                'tier_1')]
                                             },
                                             'tier_2': {
-                                                'reward': app.config['{}.{}.{}.'
-                                                                     'ask.reward'
+                                                'reward': app.config['{}.{}.ask.{}'
+                                                                     '.reward'
                                                                      ''.format(exchange,
                                                                                unit,
                                                                                'tier_2')]
@@ -275,15 +275,15 @@ def exchanges():
                                                                     ''.format(exchange,
                                                                               unit)],
                                             'tier_1': {
-                                                'reward': app.config['{}.{}.{}.'
-                                                                     'bid.reward'
+                                                'reward': app.config['{}.{}.bid.{}'
+                                                                     '.reward'
                                                                      ''.format(exchange,
                                                                                unit,
                                                                                'tier_1')]
                                             },
                                             'tier_2': {
-                                                'reward': app.config['{}.{}.{}.'
-                                                                     'bid.reward'
+                                                'reward': app.config['{}.{}.bid.{}'
+                                                                     '.reward'
                                                                      ''.format(exchange,
                                                                                unit,
                                                                                'tier_2')]
