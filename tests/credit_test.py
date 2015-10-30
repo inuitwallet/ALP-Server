@@ -5,6 +5,7 @@ import unittest
 import sqlite3
 import bottle
 import sys
+
 sys.path.append('../')
 import credit
 import database
@@ -12,7 +13,6 @@ import load_config
 
 
 class TestCredits(unittest.TestCase):
-
     def setUp(self):
         """
         Set up the database with some orders ready for a credit
@@ -39,22 +39,33 @@ class TestCredits(unittest.TestCase):
         c.execute("DELETE FROM credits")
         conn.commit()
         # create test data
-        self.test_data = {'tier_1': {'TEST_USER_1': {'bid': random.randint(0, 1000),
-                                                     'ask': random.randint(0, 1000)},
-                                     'TEST_USER_2': {'bid': random.randint(0, 1000),
-                                                     'ask': random.randint(0, 1000)},
-                                     'TEST_USER_3': {'bid': random.randint(0, 1000),
-                                                     'ask': random.randint(0, 1000)},
-                                     'TEST_USER_4': {'bid': random.randint(0, 1000),
-                                                     'ask': random.randint(0, 1000)}},
-                          'tier_2': {'TEST_USER_1': {'bid': random.randint(0, 1000),
-                                                     'ask': random.randint(0, 1000)},
-                                     'TEST_USER_2': {'bid': random.randint(0, 1000),
-                                                     'ask': random.randint(0, 1000)},
-                                     'TEST_USER_3': {'bid': random.randint(0, 1000),
-                                                     'ask': random.randint(0, 1000)},
-                                     'TEST_USER_4': {'bid': random.randint(0, 1000),
-                                                     'ask': random.randint(0, 1000)}}}
+        self.test_data = {
+            'tier_1': {
+                'TEST_USER_1': {
+                    'bid': random.randint(0, 1000),
+                    'ask': random.randint(0, 1000)},
+                'TEST_USER_2': {
+                    'bid': random.randint(0, 1000),
+                    'ask': random.randint(0, 1000)},
+                'TEST_USER_3': {
+                    'bid': random.randint(0, 1000),
+                    'ask': random.randint(0, 1000)},
+                'TEST_USER_4': {
+                    'bid': random.randint(0, 1000),
+                    'ask': random.randint(0, 1000)}},
+            'tier_2': {
+                'TEST_USER_1': {
+                    'bid': random.randint(0, 1000),
+                    'ask': random.randint(0, 1000)},
+                'TEST_USER_2': {
+                    'bid': random.randint(0, 1000),
+                    'ask': random.randint(0, 1000)},
+                'TEST_USER_3': {
+                    'bid': random.randint(0, 1000),
+                    'ask': random.randint(0, 1000)},
+                'TEST_USER_4': {
+                    'bid': random.randint(0, 1000),
+                    'ask': random.randint(0, 1000)}}}
         # add some orders to the database for test_data
         for tier in self.test_data:
             for user in self.test_data[tier]:
@@ -63,8 +74,8 @@ class TestCredits(unittest.TestCase):
                               "'order_amount','order_type','exchange','unit') "
                               "VALUES (?,?,?,?,?,?,?)",
                               (user, tier, random.randint(0, 250),
-                               self.test_data[tier][user][side], side, 'exchange',
-                               'currency'))
+                               self.test_data[tier][user][side], side, 'test_exchange',
+                               'btc'))
         conn.commit()
         conn.close()
         self.log.debug('ending setUp')
@@ -96,9 +107,9 @@ class TestCredits(unittest.TestCase):
         for user in self.test_data['tier_1']:
             real_tier_1_total['bid'] += self.test_data['tier_1'][user]['bid']
             real_tier_1_total['ask'] += self.test_data['tier_1'][user]['ask']
-        self.assertEqual(tier_1_total['exchange']['currency']['bid'],
+        self.assertEqual(tier_1_total['test_exchange']['btc']['bid'],
                          real_tier_1_total['bid'])
-        self.assertEqual(tier_1_total['exchange']['currency']['ask'],
+        self.assertEqual(tier_1_total['test_exchange']['btc']['ask'],
                          real_tier_1_total['ask'])
 
         # same for tier 2
@@ -107,9 +118,9 @@ class TestCredits(unittest.TestCase):
         for user in self.test_data['tier_2']:
             real_tier_2_total['bid'] += self.test_data['tier_2'][user]['bid']
             real_tier_2_total['ask'] += self.test_data['tier_2'][user]['ask']
-        self.assertEqual(tier_2_total['exchange']['currency']['bid'],
+        self.assertEqual(tier_2_total['test_exchange']['btc']['bid'],
                          real_tier_2_total['bid'])
-        self.assertEqual(tier_2_total['exchange']['currency']['ask'],
+        self.assertEqual(tier_2_total['test_exchange']['btc']['ask'],
                          real_tier_2_total['ask'])
         self.log.debug('ending test_get_total_liquidity')
 
@@ -120,8 +131,9 @@ class TestCredits(unittest.TestCase):
         """
         self.log.debug('running test_crediting')
         # calculate the correct values
-        total = {'tier_1': {'bid': 0.00, 'ask': 0.00},
-                 'tier_2': {'bid': 0.00, 'ask': 0.00}}
+        total = {
+            'tier_1': {'bid': 0.00, 'ask': 0.00},
+            'tier_2': {'bid': 0.00, 'ask': 0.00}}
         for tier in self.test_data:
             for user in self.test_data[tier]:
                 for side in self.test_data[tier][user]:
@@ -147,13 +159,11 @@ class TestCredits(unittest.TestCase):
             # check the reward is credited correctly
             this_reward = (this_percentage / 100) * self.app.config['{}.{}.'
                                                                     '{}.{}.reward'
-                                                                    ''.format('exchange',
-                                                                              'currency',
-                                                                              cred[6],
-                                                                              cred[5])]
+                                                                    ''.format(
+                                                                        'test_exchange',
+                                                                        'currency',
+                                                                        cred[6],
+                                                                        cred[5])]
             # Asert almost equal to avoid rounding errors at 10 d.p.
             self.assertAlmostEqual(cred[10], this_reward, 15)
         self.log.debug('ending test_crediting')
-
-
-
