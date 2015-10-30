@@ -20,9 +20,17 @@ app = TestApp(pool_server.app)
 
 headers = {'Content-Type': 'application/json'}
 
+########
+# # Root
+########
+
 log.debug('test root url')
 resp = app.get('/')
 assert resp.json == {'success': True, 'message': 'ALP Server is operational'}
+
+########
+# # Register
+########
 
 log.debug('test register without correct headers')
 resp = app.post('/register')
@@ -34,6 +42,7 @@ assert resp.json == {'success': False, 'message': 'no json found in request'}
 
 log.debug('test register with blank data')
 resp = app.post('/register', headers=headers, params={})
+assert resp.json == {'success': False, 'message': 'no json found in request'}
 
 log.debug('set test data')
 test_data = {'user': 'TEST_USER_1', 'address': 'BMJ2PJ1TNMwnTYUopQVxBrAPmmJjJjhd96',
@@ -91,3 +100,39 @@ data['unit'] = 'bad_unit'
 resp = app.post('/register', headers=headers, params=json.dumps(data))
 assert resp.json == {'success': False, 'message': 'bad_unit is not supported on '
                                                   'test_exchange'}
+
+log.debug('test register complete')
+data = test_data.copy()
+resp = app.post('/register', headers=headers, params=json.dumps(data))
+assert resp.json == {'success': True, 'message': 'user successfully registered'}
+
+log.debug('test register reregister')
+data = test_data.copy()
+resp = app.post('/register', headers=headers, params=json.dumps(data))
+assert resp.json == {'success': False, 'message': 'user is already registered'}
+
+#######
+# # Liquidity
+#######
+
+log.debug('test liquidity without correct headers')
+resp = app.post('/liquidity')
+assert resp.json == {'success': False, 'message': 'Content-Type header must be '
+                                                  'set to \'application/json\''}
+log.debug('test liquidity with no data')
+resp = app.post('/liquidity', headers=headers)
+assert resp.json == {'success': False, 'message': 'no json found in request'}
+
+log.debug('test liquidity with blank data')
+resp = app.post('/liquidity', headers=headers, params={})
+assert resp.json == {'success': False, 'message': 'no json found in request'}
+
+log.debug('set test data')
+test_data = {'user': 'TEST_USER_1', 'req': {}, 'sign': 'this_is_signed',
+             'exchange': 'test_exchange', 'unit': 'btc'}
+
+log.debug('test liquidity with no user')
+data = test_data.copy()
+del data['user']
+resp = app.post('/liquidity', headers=headers, params=json.dumps(data))
+assert resp.json == {'success': False, 'message': 'no user provided'}
