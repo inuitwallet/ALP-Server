@@ -33,7 +33,7 @@ resp = app.post('/register', headers=headers, params={})
 
 log.debug('set test data')
 test_data = {'user': 'TEST_USER_1', 'address': 'BMJ2PJ1TNMwnTYUopQVxBrAPmmJjJjhd96',
-             'exchange': 'exchange', 'unit': 'currency'}
+             'exchange': 'test_exchange', 'unit': 'btc'}
 
 log.debug('test register with no user in data')
 data = test_data.copy()
