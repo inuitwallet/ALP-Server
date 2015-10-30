@@ -127,7 +127,7 @@ def register(db):
         return {'success': False, 'message': '{} is not supported'.format(exchange)}
     # Check that the unit is supported on the server
     if unit not in app.config['{}.units'.format(exchange)]:
-        log.warn('%s is not supported on %s', (unit, exchange))
+        log.warn('%s is not supported on %s', unit, exchange)
         return {'success': False, 'message': '{} is not supported on {}'.format(unit,
                                                                                 exchange)}
     # Check if the user already exists in the database
