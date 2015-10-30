@@ -21,8 +21,7 @@ class TestCredits(unittest.TestCase):
         # Build the tests Logger
         self.log = logging.Logger('Tests')
         stream = logging.StreamHandler()
-        formatter = logging.Formatter(fmt='%(asctime)s - %(levelname)s - %(message)s',
-                                      datefmt='%y-%m-%d %H:%M:%S')
+        formatter = logging.Formatter(fmt='TEST - %(message)s')
         stream.setFormatter(formatter)
         self.log.addHandler(stream)
         self.log.debug('TestCredits testcase')
