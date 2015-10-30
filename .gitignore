@@ -46,6 +46,7 @@ NOTES
 exchange_config
 !tests/exchange_config
 pool_config
+!tests/pool_config
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
