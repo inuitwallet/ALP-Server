@@ -1,4 +1,4 @@
 bottle
 bottle-sqlite
 python-bitcoinrpc
-wsgi-request-logger
+webtest
