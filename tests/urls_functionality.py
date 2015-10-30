@@ -1,7 +1,10 @@
+import json
 import logging
+import os
 from webtest import TestApp
 import sys
 sys.path.append('../')
+os.remove('pool.db')
 import pool_server
 
 __author__ = 'sammoth'
@@ -38,6 +41,52 @@ test_data = {'user': 'TEST_USER_1', 'address': 'BMJ2PJ1TNMwnTYUopQVxBrAPmmJjJjhd
 log.debug('test register with no user in data')
 data = test_data.copy()
 del data['user']
-#print data
-#resp = app.post('/register', headers=headers, params=data)
-#assert resp.json == {'success': False, 'message': 'no user provided'}
+resp = app.post('/register', headers=headers, params=json.dumps(data))
+assert resp.json == {'success': False, 'message': 'no user provided'}
+
+log.debug('test register with no address in data')
+data = test_data.copy()
+del data['address']
+resp = app.post('/register', headers=headers, params=json.dumps(data))
+assert resp.json == {'success': False, 'message': 'no address provided'}
+
+log.debug('test register with no exchange in data')
+data = test_data.copy()
+del data['exchange']
+resp = app.post('/register', headers=headers, params=json.dumps(data))
+assert resp.json == {'success': False, 'message': 'no exchange provided'}
+
+log.debug('test register with no unit in data')
+data = test_data.copy()
+del data['unit']
+resp = app.post('/register', headers=headers, params=json.dumps(data))
+assert resp.json == {'success': False, 'message': 'no unit provided'}
+
+log.debug('test register with invalid address in data (no B at start)')
+data = test_data.copy()
+data['address'] = 'JMJ2PJ1TNMwnTYUopQVxBrAPmmJjJjhd96'
+resp = app.post('/register', headers=headers, params=json.dumps(data))
+assert resp.json == {'success': False, 'message': 'JMJ2PJ1TNMwnTYUopQVxBrAPmmJjJjhd96 '
+                                                  'is not a valid NBT address. It '
+                                                  'should start with a \'B\''}
+
+log.debug('test register with invalid address in data (invalid checksum)')
+data = test_data.copy()
+data['address'] = 'BMJ2PJ1TNMwnTYUopQVxBraPmmJjJjhd95'
+resp = app.post('/register', headers=headers, params=json.dumps(data))
+assert resp.json == {'success': False, 'message': 'BMJ2PJ1TNMwnTYUopQVxBraPmmJjJjhd95 '
+                                                  'is not a valid NBT address. The '
+                                                  'checksum doesn\'t match'}
+
+log.debug('test register with unsupported exchange')
+data = test_data.copy()
+data['exchange'] = 'bad_exchange'
+resp = app.post('/register', headers=headers, params=json.dumps(data))
+assert resp.json == {'success': False, 'message': 'bad_exchange is not supported'}
+
+log.debug('test register with unsupported unit')
+data = test_data.copy()
+data['unit'] = 'bad_unit'
+resp = app.post('/register', headers=headers, params=json.dumps(data))
+assert resp.json == {'success': False, 'message': 'bad_unit is not supported on '
+                                                  'test_exchange'}
