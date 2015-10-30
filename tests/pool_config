@@ -1,7 +1,6 @@
 [pool]
 name=pool
 grant_address=Bxxxxxxxxxxxxxxxxx
-run_threads=False
 
 [rpc]
 user=nu
