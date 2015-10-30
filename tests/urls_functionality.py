@@ -1,7 +1,5 @@
-import json
 from webtest import TestApp
 import sys
-import sqlite3
 
 sys.path.append('../')
 import pool_server
