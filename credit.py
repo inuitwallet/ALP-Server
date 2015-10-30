@@ -27,7 +27,6 @@ def credit(app, rpc, log, start_timer=True):
     if start_timer:
         Timer(60.0, credit, kwargs={'app': app, 'rpc': rpc, 'log': log}).start()
     log.info('Starting Credit')
-    credit_time = int(time.time())
     conn = sqlite3.connect('pool.db')
     db = conn.cursor()
     # Get all the orders from the database.
@@ -82,13 +81,11 @@ def credit(app, rpc, log, start_timer=True):
 
         # Calculate the percentage of the tier 1 liquidity that this user provides
         # for each exchange/unit combination
-        calculate_rewards(app, 'tier_1', provided_liquidity, total['tier_1'], user,
-                          credit_time)
+        calculate_rewards(app, 'tier_1', provided_liquidity, total['tier_1'], user)
 
         # Record for tier 2 orders also to allow for user reports
         # There is no reward for tier 2
-        calculate_rewards(app, 'tier_2', provided_liquidity, total['tier_2'], user,
-                          credit_time)
+        calculate_rewards(app, 'tier_2', provided_liquidity, total['tier_2'], user)
     log.info('Credit finished')
     return
 
@@ -124,13 +121,13 @@ def get_total_liquidity(app, orders, tier):
     return liquidity
 
 
-def calculate_rewards(app, tier, provided_liquidity, total, user, credit_time):
+def calculate_rewards(app, tier, provided_liquidity, total, user):
     """
     Calculate the rewards for
     :param tier:
     :return:
     """
-
+    credit_time = int(time.time())
     for exchange in provided_liquidity[tier]:
         for unit in provided_liquidity[tier][exchange]:
             for side in provided_liquidity[tier][exchange][unit]:
