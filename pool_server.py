@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 from threading import Timer
@@ -13,7 +14,7 @@ import payout
 import database
 import load_config
 from utils import AddressCheck
-from exchanges import Bittrex, BTER, CCEDK, TestExchange
+from exchanges import Bittrex, BTER, CCEDK, Poloniex, TestExchange
 
 __author__ = 'sammoth'
 
@@ -51,6 +52,7 @@ app.install(SQLitePlugin(dbfile='pool.db', keyword='db'))
 wrappers = {'bittrex': Bittrex(),
             'bter': BTER(),
             'ccedk': CCEDK(),
+            'poloniex': Poloniex(),
             'test_exchange': TestExchange()}
 
 
@@ -116,7 +118,7 @@ def register(db):
     # Check for a valid address
     address_check = AddressCheck()
     if address[0] != 'B' and not address_check.check_checksum(address):
-        log.warn('{} is not a valid NBT address'.format(address))
+        log.warn('%s is not a valid NBT address', address)
         return {'success': False, 'message': '{} is not a valid NBT address'.format(
             address)}
     # Check that the requests exchange is supported by the server
