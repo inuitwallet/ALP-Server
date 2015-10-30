@@ -73,9 +73,9 @@ assert resp.json == {'success': False, 'message': 'JMJ2PJ1TNMwnTYUopQVxBrAPmmJjJ
 
 log.debug('test register with invalid address in data (invalid checksum)')
 data = test_data.copy()
-data['address'] = 'BMJ2PJ1TNMwnTYUopQVxBraPmmJjJjhd95'
+data['address'] = 'BMJ2PJ1TNMwnTYUopQVxBrAPmmJjJjhd95'
 resp = app.post('/register', headers=headers, params=json.dumps(data))
-assert resp.json == {'success': False, 'message': 'BMJ2PJ1TNMwnTYUopQVxBraPmmJjJjhd95 '
+assert resp.json == {'success': False, 'message': 'BMJ2PJ1TNMwnTYUopQVxBrAPmmJjJjhd95 '
                                                   'is not a valid NBT address. The '
                                                   'checksum doesn\'t match'}
 
