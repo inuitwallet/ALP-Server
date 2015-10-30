@@ -1,6 +1,5 @@
 import logging
 import os
-import random
 from threading import Timer
 from requestlogger import WSGILogger, ApacheFormatter
 from logging.handlers import TimedRotatingFileHandler
@@ -8,12 +7,13 @@ import bottle
 from bottle_sqlite import SQLitePlugin
 from bottle import run, request
 from bitcoinrpc.authproxy import AuthServiceProxy
+import time
 import credit
 import payout
 import database
 import load_config
 from utils import AddressCheck
-from exchanges import *
+from exchanges import Bittrex, BTER, CCEDK, TestExchange
 
 __author__ = 'sammoth'
 
@@ -48,7 +48,10 @@ database.build(log)
 app.install(SQLitePlugin(dbfile='pool.db', keyword='db'))
 
 # Create the Exchange wrapper objects
-wrappers = {'bittrex': Bittrex(), 'bter': BTER(), 'ccedk': CCEDK()}
+wrappers = {'bittrex': Bittrex(),
+            'bter': BTER(),
+            'ccedk': CCEDK(),
+            'test_exchange': TestExchange()}
 
 
 def check_headers(headers):
@@ -183,8 +186,7 @@ def liquidity(db):
         log.warn('no req provided')
         return {'success': False, 'message': 'no req provided'}
     # use the submitted data to request the users orders
-    #orders = wrappers[exchange].validate_request(user, unit, req, sign)
-    orders = build_order_list()
+    orders = wrappers[exchange].validate_request(user, unit, req, sign)
     price = get_price()
     # clear existing orders for the user
     log.info('clear existing orders for user {}'.format(user))
@@ -265,25 +267,6 @@ def status(db):
     data['total'] = data['total_tier_1'] + data['total_tier_2']
 
     return {'success': True, 'message': data}
-
-
-
-def build_order_list():
-    """
-    This is a testing method which builds a ficticious order dictionary for each
-    submission to 'liquidity'
-    :return:
-    """
-    """
-    :return:
-    """
-    orders = []
-    for x in xrange(10):
-        orders.append({'price': (1234 + random.randint(-5, 5)),
-                       'id': (x + random.randint(0, 250)),
-                       'amount': 10,
-                       'type': 'bid' if int(x) % 2 == 0 else 'ask'})
-    return orders
 
 
 def get_price():
