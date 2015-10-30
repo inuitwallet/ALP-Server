@@ -19,7 +19,7 @@ class Bittrex(object):
     def __repr__(self):
         return "bittrex"
 
-    def validate_request(self, key, unit, data, signs):
+    def validate_request(self, key, unit, data, sign):
         orders = []
         last_error = ""
         requests = json.loads(data['requests'])
@@ -176,7 +176,8 @@ class TestExchange(object):
     def __repr__(self):
         return 'test_exchange'
 
-    def validate_request(self, key, unit, data, sign):
+    @staticmethod
+    def validate_request(key, unit, data, sign):
         orders = []
         for x in xrange(10):
             orders.append({'price': (1234 + random.randint(-5, 5)),

@@ -277,14 +277,7 @@ def get_price():
     feeds if that fails
     :return:
     """
-    """
-    :return:
-    """
     return 1234
-
-"""
-Handle common errors with nice json response
-"""
 
 
 @app.error(code=500)

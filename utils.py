@@ -4,7 +4,7 @@ from hashlib import sha256
 from binascii import unhexlify
 
 
-class AddressCheck:
+class AddressCheck(object):
     def __init__(self):
         self.b58_digits = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 
@@ -20,8 +20,8 @@ class AddressCheck:
         except ValueError:
             return False
         checksum = check_key[-4:]
-        hash = sha256(sha256(check_key[:-4]).digest()).digest()[:4]
-        if hash == checksum:
+        check_hash = sha256(sha256(check_key[:-4]).digest()).digest()[:4]
+        if check_hash == checksum:
             return True
         else:
             return False
