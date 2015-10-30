@@ -161,7 +161,7 @@ class TestCredits(unittest.TestCase):
                                                                     '{}.{}.reward'
                                                                     ''.format(
                                                                         'test_exchange',
-                                                                        'currency',
+                                                                        'btc',
                                                                         cred[6],
                                                                         cred[5])]
             # Asert almost equal to avoid rounding errors at 10 d.p.
