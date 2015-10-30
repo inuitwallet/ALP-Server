@@ -23,7 +23,7 @@ def credit(app, rpc, log, start_timer=True):
     each users proportion of it
     :return:
     """
-    # Set the timer going again
+    # Set the timer going again (use the boolean to allow testing)
     if start_timer:
         Timer(60.0, credit, kwargs={'app': app, 'rpc': rpc, 'log': log}).start()
     log.info('Starting Credit')
@@ -36,14 +36,13 @@ def credit(app, rpc, log, start_timer=True):
     db.execute('DELETE FROM orders')
     conn.commit()
     conn.close()
-    # Get the total for tier 1 liquidity for each exchange/unit/side combination
-    total_tier_1 = get_total_liquidity(app, all_orders, 'tier_1')
-    # Get the total for tier 2 liquidity also
-    total_tier_2 = get_total_liquidity(app, all_orders, 'tier_2')
+    # get the total amount of liquidity for tier 1 and 2
+    total = {'tier_1': get_total_liquidity(app, all_orders, 'tier_1'),
+              'tier_2': get_total_liquidity(app, all_orders, 'tier_2')}
 
     # We've calculated the totals so submit them as liquidity_info
-    Thread(target=liquidity_info, kwargs={'rpc': rpc, 'tier_1': total_tier_1,
-                                          'tier_2': total_tier_2, 'log': log})
+    Thread(target=liquidity_info, kwargs={'rpc': rpc, 'tier_1': total['tier_1'],
+                                          'tier_2': total['tier_2'], 'log': log})
 
     # build the orders into a dictionary of lists based on the user api key
     user_orders = {}
@@ -77,24 +76,18 @@ def credit(app, rpc, log, start_timer=True):
                 continue
             # add the order to the list
             credited_orders.append(order_hash)
-            # these variables makes it easier to see what's going on
-            tier = order[2]
-            exchange = order[6]
-            unit = order[7]
-            side = order[5]
-            order_amount = order[4]
 
             # add the order amount to the liquidity provided
-            provided_liquidity[tier][exchange][unit][side] += float(order_amount)
+            provided_liquidity[order[2]][order[6]][order[7]][order[5]] += float(order[4])
 
         # Calculate the percentage of the tier 1 liquidity that this user provides
         # for each exchange/unit combination
-        calculate_rewards(app, 'tier_1', provided_liquidity, total_tier_1, user,
+        calculate_rewards(app, 'tier_1', provided_liquidity, total['tier_1'], user,
                           credit_time)
 
         # Record for tier 2 orders also to allow for user reports
         # There is no reward for tier 2
-        calculate_rewards(app, 'tier_2', provided_liquidity, total_tier_2, user,
+        calculate_rewards(app, 'tier_2', provided_liquidity, total['tier_2'], user,
                           credit_time)
     log.info('Credit finished')
     return
