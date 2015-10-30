@@ -123,11 +123,11 @@ def register(db):
             address)}
     # Check that the requests exchange is supported by the server
     if exchange not in app.config['exchanges']:
-        log.warn('{} is not supported'.format(exchange))
+        log.warn('%s is not supported', exchange)
         return {'success': False, 'message': '{} is not supported'.format(exchange)}
     # Check that the unit is supported on the server
     if unit not in app.config['{}.units'.format(exchange)]:
-        log.warn('{} is not supported on {}'.format(unit, exchange))
+        log.warn('%s is not supported on %s', (unit, exchange))
         return {'success': False, 'message': '{} is not supported on {}'.format(unit,
                                                                                 exchange)}
     # Check if the user already exists in the database
@@ -139,7 +139,7 @@ def register(db):
         return {'success': False, 'message': 'user is already registered'}
     db.execute("INSERT INTO users ('user','address','exchange','unit') VALUES (?,?,?,?)",
                (user, address, exchange, unit))
-    log.info('user {} successfully registered'.format(user))
+    log.info('user %s successfully registered', user)
     return {'success': True, 'message': 'user successfully registered'}
 
 
@@ -191,7 +191,7 @@ def liquidity(db):
     orders = wrappers[exchange].validate_request(user, unit, req, sign)
     price = get_price()
     # clear existing orders for the user
-    log.info('clear existing orders for user {}'.format(user))
+    log.info('clear existing orders for user %s', user)
     db.execute("DELETE FROM orders WHERE user=? AND exchange=? AND unit=?", (user,
                                                                              exchange,
                                                                              unit))
@@ -210,7 +210,7 @@ def liquidity(db):
                    "'order_type','exchange','unit') VALUES (?,?,?,?,?,?,?)",
                    (user, tier, str(order['id']), float(order['amount']),
                     str(order['type']), exchange, unit))
-    log.info('user {} orders saved for validation'.format(user))
+    log.info('user %s orders saved for validation', user)
     return {'success': True, 'message': 'orders saved for validation'}
 
 
@@ -282,23 +282,23 @@ def get_price():
 
 @app.error(code=500)
 def error500(error):
-    return json.dumps({'success': False, 'message': '500 error'})
+    return json.dumps({'success': False, 'message': '500 error: {}'.formet(error)})
 
 
 @app.error(code=502)
 def error502(error):
-    return json.dumps({'success': False, 'message': '502 error'})
+    return json.dumps({'success': False, 'message': '502 error: {}'.formet(error)})
 
 
 @app.error(code=503)
 def error503(error):
-    return json.dumps({'success': False, 'message': '503 error'})
+    return json.dumps({'success': False, 'message': '503 error: {}'.formet(error)})
 
 
 @app.error(code=404)
 def error404(error):
-    return json.dumps({'success': False, 'message': '404 {} not found'.format(
-        request.url)})
+    return json.dumps({'success': False, 'message': '404 {} not found: {}'.format(
+        request.url, error)})
 
 
 if __name__ == '__main__':
