@@ -1,0 +1,10 @@
+[pool]
+name=pool
+grant_address=Bxxxxxxxxxxxxxxxxx
+run_threads=False
+
+[rpc]
+user=nu
+pass=12345678
+host=127.0.0.1
+port=14002
