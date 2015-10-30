@@ -249,18 +249,47 @@ def exchanges():
         if exchange not in data:
             data[exchange] = {}
         for unit in app.config['{}.units'.format(exchange)]:
-            data[exchange][unit] = {'ask': {'tolerance':
-                                            app.config['{}.{}.ask.tolerance'.format(
-                                                       exchange, unit)],
-                                            'reward':
-                                            app.config['{}.{}.ask.reward'.format(
-                                                       exchange, unit)]},
-                                    'bid': {'tolerance':
-                                            app.config['{}.{}.bid.tolerance'.format(
-                                                       exchange, unit)],
-                                            'reward':
-                                            app.config['{}.{}.bid.reward'.format(
-                                                       exchange, unit)]}}
+            data[exchange][unit] = {'ask': {'tolerance': app.config['{}.{}.ask.'
+                                                                    'tolerance'
+                                                                    ''.format(exchange,
+                                                                              unit)],
+                                            'tier_1': {
+                                                'reward': app.config['{}.{}.{}'
+                                                                     'ask.reward'
+                                                                     ''.format(exchange,
+                                                                               unit,
+                                                                               'tier_1')]
+                                            },
+                                            'tier_2': {
+                                                'reward': app.config['{}.{}.{}'
+                                                                     'ask.reward'
+                                                                     ''.format(exchange,
+                                                                               unit,
+                                                                               'tier_2')]
+                                            }
+                                            },
+
+
+                                    'bid': {'tolerance': app.config['{}.{}.bid.'
+                                                                    'tolerance'
+                                                                    ''.format(exchange,
+                                                                              unit)],
+                                            'tier_1': {
+                                                'reward': app.config['{}.{}.{}'
+                                                                     'bid.reward'
+                                                                     ''.format(exchange,
+                                                                               unit,
+                                                                               'tier_1')]
+                                            },
+                                            'tier_2': {
+                                                'reward': app.config['{}.{}.{}'
+                                                                     'bid.reward'
+                                                                     ''.format(exchange,
+                                                                               unit,
+                                                                               'tier_2')]
+                                            }
+                                            }
+                                    }
     return data
 
 
