@@ -8,7 +8,7 @@ __author__ = 'sammoth'
 
 log = logging.Logger('ALP_Test')
 stream = logging.StreamHandler()
-formatter = logging.Formatter(fmt='TEST - %(message)s')
+formatter = logging.Formatter(fmt='%(message)s')
 stream.setFormatter(formatter)
 log.addHandler(stream)
 
