@@ -128,7 +128,7 @@ resp = app.post('/liquidity', headers=headers, params={})
 assert resp.json == {'success': False, 'message': 'no json found in request'}
 
 log.debug('set test data')
-test_data = {'user': 'TEST_USER_1', 'req': {}, 'sign': 'this_is_signed',
+test_data = {'user': 'TEST_USER_1', 'req': {'test': True}, 'sign': 'this_is_signed',
              'exchange': 'test_exchange', 'unit': 'btc'}
 
 log.debug('test liquidity with no user')
@@ -136,3 +136,35 @@ data = test_data.copy()
 del data['user']
 resp = app.post('/liquidity', headers=headers, params=json.dumps(data))
 assert resp.json == {'success': False, 'message': 'no user provided'}
+
+log.debug('test liquidity with no req')
+data = test_data.copy()
+del data['req']
+resp = app.post('/liquidity', headers=headers, params=json.dumps(data))
+assert resp.json == {'success': False, 'message': 'no req provided'}
+
+log.debug('test liquidity with no sign')
+data = test_data.copy()
+del data['sign']
+resp = app.post('/liquidity', headers=headers, params=json.dumps(data))
+assert resp.json == {'success': False, 'message': 'no sign provided'}
+
+log.debug('test liquidity with no exchange')
+data = test_data.copy()
+del data['exchange']
+resp = app.post('/liquidity', headers=headers, params=json.dumps(data))
+assert resp.json == {'success': False, 'message': 'no exchange provided'}
+
+log.debug('test liquidity with no unit')
+data = test_data.copy()
+del data['unit']
+resp = app.post('/liquidity', headers=headers, params=json.dumps(data))
+assert resp.json == {'success': False, 'message': 'no unit provided'}
+
+log.debug('test liquidity complete')
+data = test_data.copy()
+resp = app.post('/liquidity', headers=headers, params=json.dumps(data))
+assert resp.json == {'success': True, 'message': 'orders saved for validation'}
+
+if os.path.isfile('pool.db'):
+    os.remove('pool.db')
