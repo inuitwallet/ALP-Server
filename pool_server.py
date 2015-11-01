@@ -326,7 +326,7 @@ def status(db):
     log.info('/status')
     credit_data = db.execute("SELECT * FROM credits WHERE time=(SELECT time FROM credits "
                              "ORDER BY time DESC LIMIT 1)").fetchall()
-    return {'status': True, 'message': credit_data}
+    return {'status': True, 'message': credit_data, 'test': os.environ['RUN_TIMERS']}
 
 
 def get_price():
