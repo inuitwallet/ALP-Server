@@ -6,7 +6,7 @@ This is the server part of the ALP (Automated Liquidity Pool) system.
 
 [![Build Status](https://travis-ci.org/inuitwallet/ALP-Server.svg?branch=master)](https://travis-ci.org/inuitwallet/ALP-Server)
 [![Code Health](https://landscape.io/github/inuitwallet/ALP-Server/master/landscape.svg?style=flat)](https://landscape.io/github/inuitwallet/ALP-Server/master)
-[![Heroku](https://heroku-badge.herokuapp.com/?app=alp-server)](https://alp-server.herokuapp.com)
+[![Heroku](https://heroku-badge.herokuapp.com/?app=alp-server&style=flat)](https://alp-server.herokuapp.com)
   
 ### What is an ALP?  
 Providing liquidity for the Nu network is integral to the security of the $1 peg of 
