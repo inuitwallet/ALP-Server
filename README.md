@@ -1,6 +1,6 @@
-# NuBot ALP Server
+# ALP Server
 
-This is the server part of the ALP (Automated Liquidity Pool) system.  
+This is the server for the ALP (Automated Liquidity Pool) system.  
 
 [![Join the chat at https://gitter.im/inuitwallet/ALP-Server](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/inuitwallet/ALP-Server?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)  
 
@@ -77,5 +77,6 @@ The ALP server also exposes some endpoints that can be used for statistics colle
 or logging. These are as follows:  
 ```
 GET /exchanges
-Shows an object containing the exchanges supported by this ALP and the parameters of each
+Shows an object containing the exchanges supported by this ALP 
+and the parameters of each of them.
 ```
