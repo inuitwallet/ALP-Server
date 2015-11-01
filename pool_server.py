@@ -259,14 +259,14 @@ def exchanges():
                                                                      ''.format(exchange,
                                                                                unit,
                                                                                'tier_1')]
-                                            },
+                                                },
                                             'tier_2': {
                                                 'reward': app.config['{}.{}.ask.{}'
                                                                      '.reward'
                                                                      ''.format(exchange,
                                                                                unit,
                                                                                'tier_2')]
-                                            }
+                                                }
                                             },
 
 
@@ -280,14 +280,14 @@ def exchanges():
                                                                      ''.format(exchange,
                                                                                unit,
                                                                                'tier_1')]
-                                            },
+                                                },
                                             'tier_2': {
                                                 'reward': app.config['{}.{}.bid.{}'
                                                                      '.reward'
                                                                      ''.format(exchange,
                                                                                unit,
                                                                                'tier_2')]
-                                            }
+                                                }
                                             }
                                     }
     return data
@@ -301,26 +301,32 @@ def status(db):
     unit, exchange for the last full round and the current round
     :param db:
     :return:
+
+    We want to display
+
+    * Total liquidity provided by pool
+    * Total tier_1 by pool
+    * Total tier_2 by pool
+    * total liquidity by exchange
+    * total tier_1 by exchange
+    * total tier_2 by exchange
+    * total liquidity by exchange/pair
+    * total tier_1 by exchange/pair
+    * total tier_2 by exchange/pair
+    * total liquidity by exchange/pair/side
+    * total tier_1 by exchange/pair/side
+    * total tier_2 by exchange/pair/side
+
+    * number of users
+    * number of active users
+
+    * amount 1 NBT will be rewarded currently
+
     """
     log.info('/status')
-    # build the data dict
-    data = {}
-    # get the last credit round
-    credit_data = db.execute("SELECT * FROM credits WHERE time=(SELECT time FROM "
-                             "credits ORDER BY time DESC LIMIT 1)").fetchall()
-    for cred in credit_data:
-        if 'total_tier_1' in data and 'total_tier_2' in data:
-            break
-        if 'last_credit_time' not in data:
-            data['last_credit_time'] = cred[1]
-        if 'total_tier_1' not in data and cred[5] == 'tier_1':
-            data['total_tier_1'] = cred[8]
-        if 'total_tier_2' not in data and cred[5] == 'tier_2':
-            data['total_tier_2'] = cred[8]
-
-    data['total'] = data['total_tier_1'] + data['total_tier_2']
-
-    return {'success': True, 'message': data}
+    credit_data = db.execute("SELECT * FROM credits WHERE time=(SELECT time FROM credits "
+                             "ORDER BY time DESC LIMIT 1)").fetchall()
+    return credit_data
 
 
 def get_price():
