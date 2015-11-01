@@ -2,7 +2,8 @@
 
 This is the server part of the ALP (Automated Liquidity Pool) system.  
 
-[![Join the chat at https://gitter.im/inuitwallet/ALP-Server](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/inuitwallet/ALP-Server?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Join the chat at https://gitter.im/inuitwallet/ALP-Server](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/inuitwallet/ALP-Server?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)  
+
 [![Build Status](https://travis-ci.org/inuitwallet/ALP-Server.svg?branch=master)](https://travis-ci.org/inuitwallet/ALP-Server)
 [![Code Health](https://landscape.io/github/inuitwallet/ALP-Server/master/landscape.svg?style=flat)](https://landscape.io/github/inuitwallet/ALP-Server/master)
 [![Heroku](https://heroku-badge.herokuapp.com/?app=alp-server)]
