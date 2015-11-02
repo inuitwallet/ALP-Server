@@ -71,11 +71,11 @@ class TestCredits(unittest.TestCase):
             for user in self.test_data[tier]:
                 for side in self.test_data[tier][user]:
                     c.execute("INSERT INTO orders ('user','tier','order_id',"
-                              "'order_amount','order_type','exchange','unit') "
-                              "VALUES (?,?,?,?,?,?,?)",
+                              "'order_amount','side','exchange','unit','credited') "
+                              "VALUES (?,?,?,?,?,?,?,?)",
                               (user, tier, random.randint(0, 250),
                                self.test_data[tier][user][side], side, 'test_exchange',
-                               'btc'))
+                               'btc', 0))
         conn.commit()
         conn.close()
         self.log.debug('ending setUp')
@@ -139,7 +139,7 @@ class TestCredits(unittest.TestCase):
                 for side in self.test_data[tier][user]:
                     total[tier][side] += self.test_data[tier][user][side]
         # Run the credit on the inserted data
-        credit.credit(self.app, None, self.log, False)
+        credit.credit(self.app, None, self.log)
         # get the credit details from the database
         conn = sqlite3.connect('pool.db')
         c = conn.cursor()
@@ -149,13 +149,13 @@ class TestCredits(unittest.TestCase):
         for cred in credit_data:
             # check the total liquidity is correct
             this_total = total[cred[5]][cred[6]]
-            self.assertEqual(cred[8], this_total)
+            self.assertEqual(cred[9], this_total)
             # check the amount provided is correct
             this_amount = self.test_data[cred[5]][cred[2]][cred[6]]
-            self.assertEqual(cred[7], this_amount)
+            self.assertEqual(cred[8], this_amount)
             # check the percentage is correct
             this_percentage = (this_amount / this_total) * 100
-            self.assertEqual(cred[9], this_percentage)
+            self.assertEqual(cred[10], this_percentage)
             # check the reward is credited correctly
             this_reward = (this_percentage / 100) * self.app.config['{}.{}.'
                                                                     '{}.{}.reward'
@@ -165,5 +165,5 @@ class TestCredits(unittest.TestCase):
                                                                         cred[6],
                                                                         cred[5])]
             # Asert almost equal to avoid rounding errors at 10 d.p.
-            self.assertAlmostEqual(cred[10], this_reward, 15)
+            self.assertAlmostEqual(cred[11], this_reward, 15)
         self.log.debug('ending test_crediting')
