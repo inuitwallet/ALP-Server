@@ -1,7 +1,7 @@
 import json
 import logging
 import os
-from threading import Timer
+from threading import Timer, enumerate
 from requestlogger import WSGILogger, ApacheFormatter
 from logging.handlers import TimedRotatingFileHandler
 import bottle
@@ -68,12 +68,24 @@ rpc = AuthServiceProxy("http://{}:{}@{}:{}".format(app.config['rpc.user'],
                                                    app.config['rpc.host'],
                                                    app.config['rpc.port']))
 
+server_active = True
+
 if os.getenv('RUN_TIMERS', '0') == '1':
     log.info('running timers')
     # Set the timer for credits
-    Timer(60.0, credit.credit, kwargs={'app': app, 'rpc': rpc, 'log': log}).start()
+    credit_timer = Timer(60.0, credit.credit,
+                         kwargs={'app': app, 'rpc': rpc, 'log': log},
+                         name='credit_timer')
+    if 'credit_timer' not in enumerate():
+        credit_timer.daemon = True
+        credit_timer.start()
     # Set the timer for payouts
-    Timer(86400.0, payout.pay, kwargs={'rpc': rpc, 'log': log}).start()
+    payout_timer = Timer(86400.0, payout.pay,
+                         kwargs={'rpc': rpc, 'log': log},
+                         name='payout_timer')
+    if 'payout_timer' not in enumerate():
+        payout_timer.daemon = True
+        payout_timer.start()
 
 
 def check_headers(headers):
@@ -327,7 +339,8 @@ def status(db):
     log.info('/status')
     credit_data = db.execute("SELECT * FROM credits WHERE time=(SELECT time FROM credits "
                              "ORDER BY time DESC LIMIT 1)").fetchall()
-    return {'status': True, 'message': credit_data, 'test': os.environ['RUN_TIMERS']}
+    print credit_data
+    return {'status': True, 'message': []}
 
 
 def get_price():

@@ -1,18 +1,24 @@
 import json
-from threading import Timer
+from threading import Timer, enumerate
 import sqlite3
 from bitcoinrpc.authproxy import JSONRPCException
 
 __author__ = 'sammoth'
 
 
-def pay(rpc, log):
+def pay(rpc, log, start_timer=True):
     """
     Pay all users who have a balance > 1 NBT
     :return:
     """
     # reset timer
-    Timer(86400.0, pay, kwargs={'rpc': rpc, 'log': log}).start()
+    if start_timer:
+        payout_timer = Timer(86400.0, pay,
+                             kwargs={'rpc': rpc, 'log': log},
+                             name='payout_timer')
+        if 'payout_timer' not in enumerate():
+            payout_timer.daemon = True
+            payout_timer.start()
     log.info('Payout')
     # get the credit details from the database
     conn = sqlite3.connect('pool.db')
