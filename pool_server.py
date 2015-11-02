@@ -371,26 +371,13 @@ def status(db):
     for cred in credit_data:
         print cred
         # increment the total liquidity (this is the total over the entire pool)
-        data['total_liquidity'] += cred[8]
+        data['total_liquidity'] += float(cred[8])
         # increment buy and sell side totals
-        if cred[6] == 'bid':
-            data['total_bid'] += cred[8]
-        else:
-            data['total_ask'] += cred[8]
-        # increment tier_1 totals
-        if cred[5] == 'tier_1':
-            data['total_tier_1'] += cred[8]
-            if cred[6] == 'bid':
-                data['total_tier_1_bid'] += cred[7]
-            else:
-                data['total_tier_1_bid'] += cred[7]
-        # increment tier_2 totals
-        if cred[5] == 'tier_2':
-            data['total_tier_2'] += cred[7]
-            if cred[6] == 'bid':
-                data['total_tier_2_bid'] += cred[7]
-            else:
-                data['total_tier_2_ask'] += cred[7]
+        data['total_{}'.format(cred[6])] += cred[8]
+        # increment tier totals
+        data['total_{}'.format(cred[5])] += cred[8]
+        # increment tier/side totals
+        data['total_{}_{}'.format(cred[5], cred[6])] += cred[8]
 
     return {'status': True, 'message': data}
 
