@@ -136,18 +136,12 @@ def calculate_rewards(app, tier, provided_liquidity, total, user):
     conn = sqlite3.connect('pool.db')
     db = conn.cursor()
     db.execute("UPDATE info set value=? WHERE key=?", (credit_time, 'last_credit_time'))
-    conn.commit()
-    conn.close()
     for exchange in provided_liquidity[tier]:
         for unit in provided_liquidity[tier][exchange]:
             for side in provided_liquidity[tier][exchange][unit]:
                 provided = float(provided_liquidity[tier][exchange][unit][side])
-                if provided <= 0.00:
-                    continue
                 total_l = float(total[exchange][unit][side])
-                if total_l <= 0.00:
-                    continue
-                percentage = (provided / total_l)
+                percentage = (provided / total_l) if total_l > 0.00 else 0.00
                 # Use the percentage to calculate the reward for this round
                 reward = percentage * app.config['{}.{}.{}.{}'
                                                  '.reward'.format(exchange,
@@ -156,15 +150,13 @@ def calculate_rewards(app, tier, provided_liquidity, total, user):
                                                                   tier)]
                 # save the details to the database
                 # set the connection here to keep it open as short as possible
-                conn = sqlite3.connect('pool.db')
-                db = conn.cursor()
                 db.execute("INSERT INTO credits (time,user,exchange,unit,tier,side,"
                            "provided,total,percentage,reward,paid) VALUES  "
                            "(?,?,?,?,?,?,?,?,?,?,?)",
                            (credit_time, user, exchange, unit, tier, side, provided,
                             total_l, (percentage * 100), reward, 0))
-                conn.commit()
-                conn.close()
+    conn.commit()
+    conn.close()
     return
 
 
