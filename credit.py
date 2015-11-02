@@ -28,9 +28,8 @@ def credit(app, rpc, log, start_timer=True):
         credit_timer = Timer(60.0, credit,
                              kwargs={'app': app, 'rpc': rpc, 'log': log})
         credit_timer.name = 'credit_timer'
-        if 'credit_timer' not in enumerate():
-            credit_timer.daemon = True
-            credit_timer.start()
+        credit_timer.daemon = True
+        credit_timer.start()
     log.info('Starting Credit')
     conn = sqlite3.connect('pool.db')
     db = conn.cursor()

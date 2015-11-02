@@ -16,9 +16,8 @@ def pay(rpc, log, start_timer=True):
         payout_timer = Timer(86400.0, pay,
                              kwargs={'rpc': rpc, 'log': log})
         payout_timer.name = 'payout_timer'
-        if 'payout_timer' not in enumerate():
-            payout_timer.daemon = True
-            payout_timer.start()
+        payout_timer.daemon = True
+        payout_timer.start()
     log.info('Payout')
     # get the credit details from the database
     conn = sqlite3.connect('pool.db')
