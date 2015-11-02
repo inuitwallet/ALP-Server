@@ -22,6 +22,8 @@ def build(log):
     c.execute("CREATE TABLE IF NOT EXISTS credits (id INTEGER PRIMARY KEY, time NUMBER, "
               "user TEXT, exchange TEXT, unit TEXT, tier TEXT, side TEXT, provided "
               "NUMBER, total NUMBER, percentage NUMBER, reward NUMBER, paid INTEGER)")
+    log.info('create the info table')
+    c.execute("CREATE TABLE IF NOT EXISTS info (key Text, value Text)")
     conn.commit()
     conn.close()
     return

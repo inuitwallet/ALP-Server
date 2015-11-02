@@ -351,8 +351,9 @@ def status(db):
             'total_liquidity_tier_2_ask': 0.0}
 
     # get the latest credit data from the credits field
-    credit_data = db.execute("SELECT * FROM credits WHERE time=(SELECT time FROM credits "
-                             "ORDER BY time DESC LIMIT 1)").fetchall()
+    credit_data = db.execute("SELECT * FROM credits WHERE time=("
+                             "SELECT value FROM info WHERE key='last_credit_time"
+                             ")").fetchall()
     log.debug(credit_data)
     # parse the data
     # id INTEGER PRIMARY KEY, time NUMBER, user TEXT, exchange TEXT, unit TEXT,

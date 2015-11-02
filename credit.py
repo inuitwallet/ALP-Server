@@ -136,9 +136,8 @@ def calculate_rewards(app, tier, provided_liquidity, total, user):
     # add one blank line to database to show that credit occured
     conn = sqlite3.connect('pool.db')
     db = conn.cursor()
-    db.execute("INSERT INTO credits (time,user,exchange,unit,tier, side,provided,total,"
-               "percentage,reward,paid) VALUES  (?,?,?,?,?,?,?,?,?,?,?)",
-               (credit_time, '', '', '', '', '', 0, 0, 0, 0, 0))
+    db.execute("INSERT OR REPLACE INTO info VALUES (?,?)",
+               ('last_credit_time', credit_time))
     conn.commit()
     conn.close()
     for exchange in provided_liquidity[tier]:
