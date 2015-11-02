@@ -182,6 +182,6 @@ class TestExchange(object):
         for x in xrange(10):
             orders.append({'price': (1234 + random.randint(-5, 5)),
                            'id': (x + random.randint(0, 250)),
-                           'amount': 10,
+                           'amount': random.randint(0, 250),
                            'type': 'bid' if int(x) % 2 == 0 else 'ask'})
         return orders
