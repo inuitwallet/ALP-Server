@@ -337,10 +337,21 @@ def status(db):
 
     """
     log.info('/status')
+    # build the blank data object
+    data = {'last_credit_time': '',
+            'total_liquidity': 0.0,
+            'total_liquidity_bid': 0.0,
+            'total_liquidity_ask': 0.0,
+            'total_liquidity_tier_1': 0.0,
+            'total_liquidity_tier_1_bid': 0.0,
+            'total_liquidity_tier_1_ask': 0.0,
+            'total_liquidity_tier_2': 0.0,
+            'total_liquidity_tier_2_bid': 0.0,
+            'total_liquidity_tier_2_ask': 0.0}
     credit_data = db.execute("SELECT * FROM credits WHERE time=(SELECT time FROM credits "
                              "ORDER BY time DESC LIMIT 1)").fetchall()
     print credit_data
-    return {'status': True, 'message': []}
+    return {'status': True, 'message': data}
 
 
 def get_price():
