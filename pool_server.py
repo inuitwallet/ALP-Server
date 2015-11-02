@@ -250,7 +250,7 @@ def liquidity(db):
             tier = 'tier_1'
         # save the order details
         db.execute("INSERT INTO orders ('user','tier','order_id','order_amount',"
-                   "'side','exchange','unit','credited) VALUES (?,?,?,?,?,?,?)",
+                   "'side','exchange','unit','credited') VALUES (?,?,?,?,?,?,?)",
                    (user, tier, str(order['id']), float(order['amount']),
                     str(order['type']), exchange, unit, 0))
     log.info('user %s orders saved for validation', user)
