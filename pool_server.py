@@ -69,45 +69,30 @@ rpc = AuthServiceProxy("http://{}:{}@{}:{}".format(app.config['rpc.user'],
                                                    app.config['rpc.host'],
                                                    app.config['rpc.port']))
 
-if os.getenv('RUN_TIMERS', '1') == '1':
-    log.info('running timers')
-    # Set the timer for credits
+
+def run_credit_timer():
+    log.info('running credit timer')
     credit_timer = Timer(60.0, credit.credit,
                          kwargs={'app': app, 'rpc': rpc, 'log': log})
     credit_timer.name = 'credit_timer'
-    if 'credit_timer' not in enumerate():
-        credit_timer.daemon = True
-        credit_timer.start()
-    # Set the timer for payouts
+    credit_timer.daemon = True
+    credit_timer.start()
+
+
+def run_payout_timer():
+    log.info('running payout timer')
     payout_timer = Timer(86400.0, payout.pay,
                          kwargs={'rpc': rpc, 'log': log})
     payout_timer.name = 'payout_timer'
-    if 'payout_timer' not in enumerate():
-        payout_timer.daemon = True
-        payout_timer.start()
+    payout_timer.daemon = True
+    payout_timer.start()
 
-    def check_threads():
-        check_threads_timer = Timer(10, check_threads)
-        check_threads_timer.name = 'check_threads_timer'
-        check_threads_timer.daemon = True
-        check_threads_timer.start()
-        known_threads = []
-        for t in enumerate():
-            if t.name not in ['payout_timer', 'credit_timer']:
-                continue
-            log.debug('known threads %s', known_threads)
-            log.debug('thread name %s', t.name)
-            if t.name not in known_threads:
-                known_threads.append(t.name)
-            else:
-                log.debug('killed duplicate thread %s', t.name)
-                t.cancel()
-            log.debug('known threads 2 %s', known_threads)
 
-    check_threads_timer = Timer(10, check_threads)
-    check_threads_timer.name = 'check_threads_timer'
-    check_threads_timer.daemon = True
-    check_threads_timer.start()
+if os.getenv('RUN_TIMERS', '0') == '1':
+    # Set the timer for credits
+    run_credit_timer()
+    # Set the timer for payouts
+    run_payout_timer()
 
 
 def check_headers(headers):
@@ -359,8 +344,13 @@ def status(db):
 
     """
     log.info('/status')
+
+    # get the last credit time
+    last_credit_time = db.execute("SELECT value FROM info WHERE key=?",
+                                  'last_credit_time').fetchone()
+
     # build the blank data object
-    data = {'last_credit_time': 'no credits yet',
+    data = {'last_credit_time': last_credit_time,
             'total_liquidity': 0.0,
             'total_liquidity_bid': 0.0,
             'total_liquidity_ask': 0.0,
@@ -372,17 +362,14 @@ def status(db):
             'total_liquidity_tier_2_ask': 0.0}
 
     # get the latest credit data from the credits field
-    credit_data = db.execute("SELECT * FROM credits WHERE time=("
-                             "SELECT value FROM info WHERE key='last_credit_time'"
-                             ")").fetchall()
+    credit_data = db.execute("SELECT * FROM credits WHERE time=?",
+                             last_credit_time).fetchall()
     log.debug(credit_data)
     # parse the data
     # id INTEGER PRIMARY KEY, time NUMBER, user TEXT, exchange TEXT, unit TEXT,
     # tier TEXT, side TEXT, provided NUMBER, total NUMBER, percentage NUMBER,
     # reward NUMBER, paid INTEGER
     for cred in credit_data:
-        # update the last_credit_time
-        data['last_credit_time'] = cred[1]
         # increment the total liquidity (this is total over entire pool)
         data['total_liquidity'] += cred[7]
         # increment buy and sell side totals
