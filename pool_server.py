@@ -74,15 +74,15 @@ if os.getenv('RUN_TIMERS', '0') == '1':
     log.info('running timers')
     # Set the timer for credits
     credit_timer = Timer(60.0, credit.credit,
-                         kwargs={'app': app, 'rpc': rpc, 'log': log},
-                         name='credit_timer')
+                         kwargs={'app': app, 'rpc': rpc, 'log': log})
+    credit_timer.setName('credit_timer')
     if 'credit_timer' not in enumerate():
         credit_timer.daemon = True
         credit_timer.start()
     # Set the timer for payouts
     payout_timer = Timer(86400.0, payout.pay,
-                         kwargs={'rpc': rpc, 'log': log},
-                         name='payout_timer')
+                         kwargs={'rpc': rpc, 'log': log})
+    payout_timer.setName('payout_timer')
     if 'payout_timer' not in enumerate():
         payout_timer.daemon = True
         payout_timer.start()
