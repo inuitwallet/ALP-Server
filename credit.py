@@ -133,6 +133,14 @@ def calculate_rewards(app, tier, provided_liquidity, total, user):
     :return:
     """
     credit_time = int(time.time())
+    # add one blank line to database to show that credit occured
+    conn = sqlite3.connect('pool.db')
+    db = conn.cursor()
+    db.execute("INSERT INTO credits (time,user,exchange,unit,tier, side,provided,total,"
+               "percentage,reward,paid) VALUES  (?,?,?,?,?,?,?,?,?,?,?)",
+               (credit_time, '', '', '', '', '', 0, 0, 0, 0, 0))
+    conn.commit()
+    conn.close()
     for exchange in provided_liquidity[tier]:
         for unit in provided_liquidity[tier][exchange]:
             for side in provided_liquidity[tier][exchange][unit]:
@@ -151,9 +159,9 @@ def calculate_rewards(app, tier, provided_liquidity, total, user):
                 # set the connection here to keep it open as short as possible
                 conn = sqlite3.connect('pool.db')
                 db = conn.cursor()
-                db.execute("INSERT INTO credits (time,user,exchange,unit,tier,"
-                           "side,provided,total,percentage,reward,paid) VALUES  (?,?,?,"
-                           "?,?,?,?,?,?,?,?)",
+                db.execute("INSERT INTO credits (time,user,exchange,unit,tier,side,"
+                           "provided,total,percentage,reward,paid) VALUES  "
+                           "(?,?,?,?,?,?,?,?,?,?,?)",
                            (credit_time, user, exchange, unit, tier, side, provided,
                             total_l, (percentage * 100), reward, 0))
                 conn.commit()
