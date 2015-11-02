@@ -352,45 +352,45 @@ def status(db):
     # build the blank data object
     data = {'last_credit_time': last_credit_time,
             'total_liquidity': 0.0,
-            'total_liquidity_bid': 0.0,
-            'total_liquidity_ask': 0.0,
-            'total_liquidity_tier_1': 0.0,
-            'total_liquidity_tier_1_bid': 0.0,
-            'total_liquidity_tier_1_ask': 0.0,
-            'total_liquidity_tier_2': 0.0,
-            'total_liquidity_tier_2_bid': 0.0,
-            'total_liquidity_tier_2_ask': 0.0}
+            'total_bid': 0.0,
+            'total_ask': 0.0,
+            'total_tier_1': 0.0,
+            'total_tier_1_bid': 0.0,
+            'total_tier_1_ask': 0.0,
+            'total_tier_2': 0.0,
+            'total_tier_2_bid': 0.0,
+            'total_tier_2_ask': 0.0}
 
     # get the latest credit data from the credits field
     credit_data = db.execute("SELECT * FROM credits WHERE time=?",
                              (last_credit_time,)).fetchall()
-    log.debug(credit_data)
     # parse the data
     # id INTEGER PRIMARY KEY, time NUMBER, user TEXT, exchange TEXT, unit TEXT,
     # tier TEXT, side TEXT, provided NUMBER, total NUMBER, percentage NUMBER,
     # reward NUMBER, paid INTEGER
     for cred in credit_data:
-        # increment the total liquidity (this is total over entire pool)
+        print cred
+        # increment the total liquidity (this is the total over the entire pool)
         data['total_liquidity'] += cred[7]
         # increment buy and sell side totals
         if cred[6] == 'bid':
-            data['total_liquidity_bid'] += cred[7]
+            data['total_bid'] += cred[7]
         else:
-            data['total_liquidity_ask'] += cred[7]
+            data['total_ask'] += cred[7]
         # increment tier_1 totals
         if cred[5] == 'tier_1':
-            data['total_liquidity_tier_1'] += cred[7]
+            data['total_tier_1'] += cred[7]
             if cred[6] == 'bid':
-                data['total_liquidity_tier_1_bid'] += cred[7]
+                data['total_tier_1_bid'] += cred[7]
             else:
-                data['total_liquidity_tier_1_bid'] += cred[7]
+                data['total_tier_1_bid'] += cred[7]
         # increment tier_2 totals
         if cred[5] == 'tier_2':
-            data['total_liquidity_tier_2'] += cred[7]
+            data['total_tier_2'] += cred[7]
             if cred[6] == 'bid':
-                data['total_liquidity_tier_2_bid'] += cred[7]
+                data['total_tier_2_bid'] += cred[7]
             else:
-                data['total_liquidity_tier_2_ask'] += cred[7]
+                data['total_tier_2_ask'] += cred[7]
 
     return {'status': True, 'message': data}
 
