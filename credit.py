@@ -32,7 +32,7 @@ def credit(app, rpc, log):
 
     log.info('Start Credit')
     # calculate the credit time
-    credit_time = time.time()
+    credit_time = int(time.time())
     conn = sqlite3.connect('pool.db')
     db = conn.cursor()
     # Get all the orders from the database.
