@@ -36,7 +36,7 @@ def credit(app, rpc, log):
     conn = sqlite3.connect('pool.db')
     db = conn.cursor()
     # Get all the orders from the database.
-    all_orders = db.execute("SELECT * FROM orders").fetchall()
+    all_orders = db.execute("SELECT * FROM orders WHERE credited=0").fetchall()
     # store the credit time in the info table
     db.execute("UPDATE info SET value=? WHERE key=?", (credit_time, 'last_credit_time'))
 
