@@ -46,7 +46,13 @@ def credit(app, rpc, log, start_timer=True):
     # We've calculated the totals so submit them as liquidity_info
     Thread(target=liquidity_info, kwargs={'rpc': rpc, 'tier_1': total['tier_1'],
                                           'tier_2': total['tier_2'], 'log': log})
-
+    
+    # list of known orders
+    # hash the order and compare to list
+    # if new order, calculate reward
+    # credots table should save order_id too 
+    
+    
     # build the orders into a dictionary of lists based on the user api key
     user_orders = {}
     for order in all_orders:
