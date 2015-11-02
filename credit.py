@@ -30,7 +30,7 @@ def credit(app, rpc, log, start_timer=True):
         credit_timer.name = 'credit_timer'
         credit_timer.daemon = True
         credit_timer.start()
-    log.info('Starting Credit')
+    log.info('Start Credit')
     conn = sqlite3.connect('pool.db')
     db = conn.cursor()
     # Get all the orders from the database.
@@ -90,7 +90,7 @@ def credit(app, rpc, log, start_timer=True):
         # Record for tier 2 orders also to allow for user reports
         # There is no reward for tier 2
         calculate_rewards(app, 'tier_2', provided_liquidity, total['tier_2'], user)
-    log.info('Credit finished')
+    log.info('End Credit')
     return
 
 
@@ -147,7 +147,7 @@ def calculate_rewards(app, tier, provided_liquidity, total, user):
                 total_l = float(total[exchange][unit][side])
                 if total_l <= 0.00:
                     continue
-                percentage = (provided / total_l) if total_l > 0.00 else 0.00
+                percentage = (provided / total_l)
                 # Use the percentage to calculate the reward for this round
                 reward = percentage * app.config['{}.{}.{}.{}'
                                                  '.reward'.format(exchange,
