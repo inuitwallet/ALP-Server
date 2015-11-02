@@ -33,6 +33,7 @@ def credit(app, rpc, log):
     log.info('Start Credit')
     # calculate the credit time
     credit_time = int(time.time())
+
     conn = sqlite3.connect('pool.db')
     db = conn.cursor()
     # Get all the orders from the database.
@@ -41,8 +42,7 @@ def credit(app, rpc, log):
     db.execute("UPDATE info SET value=? WHERE key=?", (credit_time, 'last_credit_time'))
 
     # get the total amount of liquidity for tier 1 and 2
-    total = {'tier_1': get_total_liquidity(app, all_orders, 'tier_1'),
-             'tier_2': get_total_liquidity(app, all_orders, 'tier_2')}
+    total = get_total_liquidity(app, all_orders)
 
     # We've calculated the totals so submit them as liquidity_info
     Thread(target=liquidity_info, kwargs={'rpc': rpc, 'total': total, 'log': log})
@@ -78,7 +78,7 @@ def credit(app, rpc, log):
     return
 
 
-def get_total_liquidity(app, orders, tier):
+def get_total_liquidity(app, orders):
     """
     Given a list of orders from the database, calculate the total amount of liquidity
     for the given tier
@@ -87,7 +87,7 @@ def get_total_liquidity(app, orders, tier):
     :return:
     """
     # build the liquidity object
-    liquidity = {}
+    liquidity = {'tier_1': {}, 'tier_2': {}}
     for exchange in app.config['exchanges']:
         if exchange not in liquidity:
             liquidity[exchange] = {}
@@ -98,14 +98,19 @@ def get_total_liquidity(app, orders, tier):
                 liquidity[exchange][unit][side] = 0.00
     # parse the orders and update the liquidity object accordingly
     for order in orders:
-        # only add orders for the current tier
-        if order[2] != tier:
+        # exclude duplicated orders using same method that will be used in main method
+        credited_orders = []
+        order_hash = '{}.{}.{}.{}.{}'.format(order[3], order[4],
+                                             order[5], order[6],
+                                             order[7])
+        # check if the order has already been credited
+        if order_hash in credited_orders:
             continue
-        # get the order details
-        exchange = order[6]
-        unit = order[7]
-        side = order[5]
-        liquidity[exchange][unit][side] += float(order[4])
+        # record it if it hasn't
+        credited_orders.append(order_hash)
+        # order schema
+        # id, user, tier, order_id, order_amount, side, exchange, unit, credited
+        liquidity[order[2]][order[6]][order[7]][order[5]] += float(order[4])
     return liquidity
 
 
