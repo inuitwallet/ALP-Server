@@ -68,7 +68,7 @@ rpc = AuthServiceProxy("http://{}:{}@{}:{}".format(app.config['rpc.user'],
                                                    app.config['rpc.host'],
                                                    app.config['rpc.port']))
 
-if os.getenv('RUN_TIMERS', 0) == 1:
+if os.getenv('RUN_TIMERS', '0') == '1':
     log.info('running timers')
     # Set the timer for credits
     Timer(60.0, credit.credit, kwargs={'app': app, 'rpc': rpc, 'log': log}).start()
