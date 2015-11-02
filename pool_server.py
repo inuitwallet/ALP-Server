@@ -93,11 +93,14 @@ if os.getenv('RUN_TIMERS', '1') == '1':
         check_threads_timer.start()
         known_threads = []
         for t in enumerate():
-            if t.name not in known_threads:
+            log.debug('known threads %s', known_threads)
+            log.debug('thread name %s', t.name)
+            if t.name in ['payout_timer', 'credit_timer'] and t.name not in known_threads:
                 known_threads.append(t.name)
             else:
                 log.debug('killed duplicate thread %s', t.name)
                 t.cancel()
+            log.debug('known threads 2 %s', known_threads)
 
     check_threads_timer = Timer(10, check_threads)
     check_threads_timer.name = 'check_threads_timer'
