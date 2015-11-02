@@ -346,8 +346,8 @@ def status(db):
     log.info('/status')
 
     # get the last credit time
-    last_credit_time = db.execute("SELECT value FROM info WHERE key=?",
-                                  ('last_credit_time',)).fetchone()[0]
+    last_credit_time = int(db.execute("SELECT value FROM info WHERE key=?",
+                                      ('last_credit_time',)).fetchone()[0])
 
     # build the blank data object
     data = {'last_credit_time': last_credit_time,
