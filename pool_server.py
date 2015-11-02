@@ -353,6 +353,7 @@ def status(db):
     # get the latest credit data from the credits field
     credit_data = db.execute("SELECT * FROM credits WHERE time=(SELECT time FROM credits "
                              "ORDER BY time DESC LIMIT 1)").fetchall()
+    log.debug(credit_data)
     # parse the data
     # id INTEGER PRIMARY KEY, time NUMBER, user TEXT, exchange TEXT, unit TEXT,
     # tier TEXT, side TEXT, provided NUMBER, total NUMBER, percentage NUMBER,
