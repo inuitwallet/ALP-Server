@@ -88,17 +88,15 @@ def get_total_liquidity(app, orders):
     """
     # build the liquidity object
     liquidity = {'tier_1': {}, 'tier_2': {}}
-    for exchange in app.config['exchanges']:
-        if exchange not in liquidity:
-            liquidity['tier_1'][exchange] = {}
-            liquidity['tier_2'][exchange] = {}
-        for unit in app.config['{}.units'.format(exchange)]:
-            if unit not in liquidity[exchange]:
-                liquidity['tier_1'][exchange][unit] = {}
-                liquidity['tier_2'][exchange][unit] = {}
-            for side in ['ask', 'bid']:
-                liquidity['tier_1'][exchange][unit][side] = 0.00
-                liquidity['tier_2'][exchange][unit][side] = 0.00
+    for tier in ['tier_1', 'tier_2']:
+        for exchange in app.config['exchanges']:
+            if exchange not in liquidity[tier]:
+                liquidity[tier][exchange] = {}
+            for unit in app.config['{}.units'.format(exchange)]:
+                if unit not in liquidity[tier][exchange]:
+                    liquidity[tier][exchange][unit] = {}
+                for side in ['ask', 'bid']:
+                    liquidity[tier][exchange][unit][side] = 0.00
     # parse the orders and update the liquidity object accordingly
     for order in orders:
         # exclude duplicated orders using same method that will be used in main method
