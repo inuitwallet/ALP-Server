@@ -362,8 +362,7 @@ def status(db):
             'total_tier_2_ask': 0.0}
 
     # get the latest credit data from the credits field
-    credit_data = db.execute("SELECT * FROM credits WHERE time=?",
-                             (last_credit_time,)).fetchall()
+    credit_data = db.execute("SELECT * FROM credits").fetchall()
     # parse the data
     # id INTEGER PRIMARY KEY, time NUMBER, user TEXT, exchange TEXT, unit TEXT,
     # tier TEXT, side TEXT, provided NUMBER, total NUMBER, percentage NUMBER,
