@@ -362,23 +362,24 @@ def status(db):
             'total_tier_2_ask': 0.0}
 
     # get the latest credit data from the credits field
-    credit_data = db.execute("SELECT * FROM credits").fetchall()
+    credit_data = db.execute("SELECT * FROM credits WHERE time=?",
+                             (last_credit_time,)).fetchall()
     # parse the data
-    # id INTEGER PRIMARY KEY, time NUMBER, user TEXT, exchange TEXT, unit TEXT,
-    # tier TEXT, side TEXT, provided NUMBER, total NUMBER, percentage NUMBER,
-    # reward NUMBER, paid INTEGER
+    # credits schema:
+    # id, time, user, exchange, unit, tier, side, order_id, provided, total, percentage,
+    # reward, paid
     for cred in credit_data:
         print cred
         # increment the total liquidity (this is the total over the entire pool)
-        data['total_liquidity'] += cred[7]
+        data['total_liquidity'] += cred[8]
         # increment buy and sell side totals
         if cred[6] == 'bid':
-            data['total_bid'] += cred[7]
+            data['total_bid'] += cred[8]
         else:
-            data['total_ask'] += cred[7]
+            data['total_ask'] += cred[8]
         # increment tier_1 totals
         if cred[5] == 'tier_1':
-            data['total_tier_1'] += cred[7]
+            data['total_tier_1'] += cred[8]
             if cred[6] == 'bid':
                 data['total_tier_1_bid'] += cred[7]
             else:
