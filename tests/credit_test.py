@@ -100,28 +100,25 @@ class TestCredits(unittest.TestCase):
         orders = c.execute("SELECT * FROM orders").fetchall()
 
         # get the data for tier_1 as calculated by the test function
-        tier_1_total = credit.get_total_liquidity(self.app, orders, 'tier_1')
+        total = credit.get_total_liquidity(self.app, orders)
         # calculate the total from our test data
         # (test data is always for one exchange and currency)
-        real_tier_1_total = {'bid': 0.00, 'ask': 0.00}
+        real_total = {'tier_1': {'bid': 0.00, 'ask': 0.00},
+                      'tier_2': {'bid': 0.00, 'ask': 0.00}}
         for user in self.test_data['tier_1']:
-            real_tier_1_total['bid'] += self.test_data['tier_1'][user]['bid']
-            real_tier_1_total['ask'] += self.test_data['tier_1'][user]['ask']
-        self.assertEqual(tier_1_total['test_exchange']['btc']['bid'],
-                         real_tier_1_total['bid'])
-        self.assertEqual(tier_1_total['test_exchange']['btc']['ask'],
-                         real_tier_1_total['ask'])
-
-        # same for tier 2
-        tier_2_total = credit.get_total_liquidity(self.app, orders, 'tier_2')
-        real_tier_2_total = {'bid': 0.00, 'ask': 0.00}
+            real_total['tier_1']['bid'] += self.test_data['tier_1'][user]['bid']
+            real_total['tier_1']['ask'] += self.test_data['tier_1'][user]['ask']
         for user in self.test_data['tier_2']:
-            real_tier_2_total['bid'] += self.test_data['tier_2'][user]['bid']
-            real_tier_2_total['ask'] += self.test_data['tier_2'][user]['ask']
-        self.assertEqual(tier_2_total['test_exchange']['btc']['bid'],
-                         real_tier_2_total['bid'])
-        self.assertEqual(tier_2_total['test_exchange']['btc']['ask'],
-                         real_tier_2_total['ask'])
+            real_total['tier_2']['bid'] += self.test_data['tier_2'][user]['bid']
+            real_total['tier_2']['ask'] += self.test_data['tier_2'][user]['ask']
+        self.assertEqual(total['tier_1']['test_exchange']['btc']['bid'],
+                         real_total['tier_1']['bid'])
+        self.assertEqual(total['tier_1']['test_exchange']['btc']['ask'],
+                         real_total['tier_1']['ask'])
+        self.assertEqual(total['tier_2']['test_exchange']['btc']['bid'],
+                         real_total['tier_2']['bid'])
+        self.assertEqual(total['tier_2']['test_exchange']['btc']['ask'],
+                         real_total['tier_2']['ask'])
         self.log.debug('ending test_get_total_liquidity')
 
     def test_crediting(self):
