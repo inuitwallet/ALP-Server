@@ -360,6 +360,20 @@ def status(db):
             'total_tier_2': 0.0,
             'total_tier_2_bid': 0.0,
             'total_tier_2_ask': 0.0}
+    # add variable totals based on app.config
+    for exchange in app.config['exchanges']:
+        data['total_{}'.format(exchange)] = 0.0
+        for unit in app.config['{}.units'.format(exchange)]:
+            data['total_{}_{}'.format(exchange, unit)] = 0.0
+            for side in ['bid', 'ask']:
+                data['total_{}_{}'.format(exchange, side)] = 0.0
+                data['total_{}_{}'.format(unit, side)] = 0.0
+                data['total_{}_{}_{}'.format(exchange, unit, side)] = 0.0
+                for tier in ['tier_1', 'tier_2']:
+                    data['total_{}_{}'.format(exchange, tier)] = 0.0
+                    data['total_{}_{}'.format(unit, tier)] = 0.0
+                    data['total_{}_{}_{}'.format(exchange, tier, side)] = 0.0
+                    data['total_{}_{}_{}_{}'.format(exchange, unit, tier, side)] = 0.0
 
     # get the latest credit data from the credits field
     credit_data = db.execute("SELECT * FROM credits WHERE time=?",
@@ -372,12 +386,31 @@ def status(db):
         print cred
         # increment the total liquidity (this is the total over the entire pool)
         data['total_liquidity'] += float(cred[8])
-        # increment buy and sell side totals
-        data['total_{}'.format(cred[6])] += cred[8]
+        # increment side totals
+        data['total_{}'.format(cred[6])] += float(cred[8])
         # increment tier totals
-        data['total_{}'.format(cred[5])] += cred[8]
+        data['total_{}'.format(cred[5])] += float(cred[8])
         # increment tier/side totals
-        data['total_{}_{}'.format(cred[5], cred[6])] += cred[8]
+        data['total_{}_{}'.format(cred[5], cred[6])] += float(cred[8])
+        # increment exchange totals
+        data['total_{}'.format(cred[3])] += float(cred[8])
+        # increment exchange/unit totals
+        data['total_{}_{}'.format(cred[3], cred[4])] += float(cred[8])
+        # increment exchange/side totals
+        data['total_{}_{}'.format(cred[3], cred[6])] += float(cred[8])
+        # increment unit/side totals
+        data['total_{}_{}'.format(cred[4], cred[6])] += float(cred[8])
+        # increment exchange/unit/side totals
+        data['total_{}_{}_{}'.format(cred[3], cred[4], cred[6])] += float(cred[8])
+        # increment exchange/tier totals
+        data['total_{}_{}'.format(cred[3], cred[5])] += float(cred[8])
+        # increment unit/tier totals
+        data['total_{}_{}'.format(cred[4], cred[5])] += float(cred[8])
+        # increment exchange/tier/side totals
+        data['total_{}_{}_{}'.format(cred[3], cred[5], cred[6])] += float(cred[8])
+        # incement exchange/unit/tier/side totals
+        data['total_{}_{}_{}_{}'.format(cred[3], cred[4], cred[5],
+                                        cred[6])] += float(cred[8])
 
     return {'status': True, 'message': data}
 
