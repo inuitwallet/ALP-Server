@@ -31,6 +31,7 @@ def credit(app, rpc, log):
     credit_timer.start()
 
     log.info('Start Credit')
+
     # calculate the credit time
     credit_time = int(time.time())
 
@@ -41,27 +42,31 @@ def credit(app, rpc, log):
     # store the credit time in the info table
     db.execute("UPDATE info SET value=? WHERE key=?", (credit_time, 'last_credit_time'))
 
-    # get the total amount of liquidity for tier 1 and 2
-    total = get_total_liquidity(app, all_orders)
-
-    # We've calculated the totals so submit them as liquidity_info
-    Thread(target=liquidity_info, kwargs={'rpc': rpc, 'total': total, 'log': log})
-
-    # set up a list of credited orders to avoid duplicate orders being credited
-    credited_orders = []
-    # parse the orders
+    # de-duplicate the orders
+    deduped_orders = []
+    known_orders = []
     for order in all_orders:
         # hash the order to avoid duplicates
         # order_id, order_amount, side, exchange, unit
         order_hash = '{}.{}.{}.{}.{}'.format(order[3], order[4],
                                              order[5], order[6],
                                              order[7])
-        # check if the order has already been credited
-        if order_hash in credited_orders:
+        # check if the order exists in our known orders list
+        if order_hash in known_orders:
             continue
-        # record it if it hasn't
-        credited_orders.append(order_hash)
+        # add it now as it is known
+        known_orders.append(order_hash)
+        # save the full order in our deduped list
+        deduped_orders.append(order)
 
+    # get the total amount of liquidity by tier
+    total = get_total_liquidity(app, deduped_orders)
+
+    # We've calculated the totals so submit them as liquidity_info
+    Thread(target=liquidity_info, kwargs={'rpc': rpc, 'total': total, 'log': log})
+
+    # parse the orders
+    for order in deduped_orders:
         # calculate the details
         total_liquidity, percentage, reward = calculate_reward(app, order, total)
         # and save to the database
@@ -70,7 +75,7 @@ def credit(app, rpc, log):
                    "?,?)", (credit_time, order[1], order[6], order[7], order[2],
                             order[5], order[0], order[4], total_liquidity,
                             (percentage * 100), reward, 0))
-        # update the original order too
+        # update the original order too to indicate that it has been credited
         db.execute("UPDATE orders SET credited=? WHERE id=?", (1, order[0]))
     conn.commit()
     conn.close()
@@ -99,16 +104,6 @@ def get_total_liquidity(app, orders):
                     liquidity[tier][exchange][unit][side] = 0.00
     # parse the orders and update the liquidity object accordingly
     for order in orders:
-        # exclude duplicated orders using same method that will be used in main method
-        credited_orders = []
-        order_hash = '{}.{}.{}.{}.{}'.format(order[3], order[4],
-                                             order[5], order[6],
-                                             order[7])
-        # check if the order has already been credited
-        if order_hash in credited_orders:
-            continue
-        # record it if it hasn't
-        credited_orders.append(order_hash)
         # order schema
         # id, user, tier, order_id, order_amount, side, exchange, unit, credited
         liquidity[order[2]][order[6]][order[7]][order[5]] += float(order[4])
