@@ -13,6 +13,7 @@ import load_config
 
 
 class TestCredits(unittest.TestCase):
+
     def setUp(self):
         """
         Set up the database with some orders ready for a credit
@@ -85,8 +86,8 @@ class TestCredits(unittest.TestCase):
         Remove database file
         :return:
         """
-        self.log.debug('running tearDown')
-        os.remove('pool.db')
+        #self.log.debug('running tearDown')
+        #os.remove('pool.db')
 
     def test_get_total_liquidity(self):
         """
