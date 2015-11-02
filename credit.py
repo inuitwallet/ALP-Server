@@ -41,7 +41,7 @@ def credit(app, rpc, log, start_timer=True):
     conn.close()
     # get the total amount of liquidity for tier 1 and 2
     total = {'tier_1': get_total_liquidity(app, all_orders, 'tier_1'),
-              'tier_2': get_total_liquidity(app, all_orders, 'tier_2')}
+             'tier_2': get_total_liquidity(app, all_orders, 'tier_2')}
 
     # We've calculated the totals so submit them as liquidity_info
     Thread(target=liquidity_info, kwargs={'rpc': rpc, 'tier_1': total['tier_1'],
@@ -142,6 +142,8 @@ def calculate_rewards(app, tier, provided_liquidity, total, user):
         for unit in provided_liquidity[tier][exchange]:
             for side in provided_liquidity[tier][exchange][unit]:
                 provided = float(provided_liquidity[tier][exchange][unit][side])
+                if provided <= 0.00:
+                    continue
                 total_l = float(total[exchange][unit][side])
                 if total_l <= 0.00:
                     continue
