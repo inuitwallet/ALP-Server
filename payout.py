@@ -15,7 +15,7 @@ def pay(rpc, log, start_timer=True):
     if start_timer:
         payout_timer = Timer(86400.0, pay,
                              kwargs={'rpc': rpc, 'log': log})
-        payout_timer.setName('payout_timer')
+        payout_timer.name = 'payout_timer'
         if 'payout_timer' not in enumerate():
             payout_timer.daemon = True
             payout_timer.start()

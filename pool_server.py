@@ -69,24 +69,40 @@ rpc = AuthServiceProxy("http://{}:{}@{}:{}".format(app.config['rpc.user'],
                                                    app.config['rpc.host'],
                                                    app.config['rpc.port']))
 
-server_active = True
-
-if os.getenv('RUN_TIMERS', '0') == '1':
+if os.getenv('RUN_TIMERS', '1') == '1':
     log.info('running timers')
     # Set the timer for credits
     credit_timer = Timer(60.0, credit.credit,
                          kwargs={'app': app, 'rpc': rpc, 'log': log})
-    credit_timer.setName('credit_timer')
+    credit_timer.name = 'credit_timer'
     if 'credit_timer' not in enumerate():
         credit_timer.daemon = True
         credit_timer.start()
     # Set the timer for payouts
     payout_timer = Timer(86400.0, payout.pay,
                          kwargs={'rpc': rpc, 'log': log})
-    payout_timer.setName('payout_timer')
+    payout_timer.name = 'payout_timer'
     if 'payout_timer' not in enumerate():
         payout_timer.daemon = True
         payout_timer.start()
+
+    def check_threads():
+        check_threads_timer = Timer(10, check_threads)
+        check_threads_timer.name = 'check_threads_timer'
+        check_threads_timer.daemon = True
+        check_threads_timer.start()
+        known_threads = []
+        for t in enumerate():
+            if t.name not in known_threads:
+                known_threads.append(t.name)
+            else:
+                log.debug('killed duplicate thread %s', t.name)
+                t.cancel()
+
+    check_threads_timer = Timer(10, check_threads)
+    check_threads_timer.name = 'check_threads_timer'
+    check_threads_timer.daemon = True
+    check_threads_timer.start()
 
 
 def check_headers(headers):

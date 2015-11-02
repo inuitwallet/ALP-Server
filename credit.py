@@ -27,7 +27,7 @@ def credit(app, rpc, log, start_timer=True):
     if start_timer:
         credit_timer = Timer(60.0, credit,
                              kwargs={'app': app, 'rpc': rpc, 'log': log})
-        credit_timer.setName('credit_timer')
+        credit_timer.name = 'credit_timer'
         if 'credit_timer' not in enumerate():
             credit_timer.daemon = True
             credit_timer.start()
