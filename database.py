@@ -24,6 +24,7 @@ def build(log):
               "NUMBER, total NUMBER, percentage NUMBER, reward NUMBER, paid INTEGER)")
     log.info('create the info table')
     c.execute("CREATE TABLE IF NOT EXISTS info (key Text, value Text)")
+    c.execute("INSERT INTO info VALUES (?, ?)", ('last_credit_time', 0))
     conn.commit()
     conn.close()
     return

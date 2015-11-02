@@ -133,11 +133,10 @@ def calculate_rewards(app, tier, provided_liquidity, total, user):
     :return:
     """
     credit_time = int(time.time())
-    # add one blank line to database to show that credit occured
+    # add one blank line to database to show that credit occurred
     conn = sqlite3.connect('pool.db')
     db = conn.cursor()
-    db.execute("INSERT OR REPLACE INTO info VALUES (?,?)",
-               ('last_credit_time', credit_time))
+    db.execute("UPDATE info set value=? WHERE key=?", (credit_time, 'last_credit_time'))
     conn.commit()
     conn.close()
     for exchange in provided_liquidity[tier]:
