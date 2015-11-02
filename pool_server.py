@@ -350,7 +350,8 @@ def status(db):
             'total_liquidity_tier_2_ask': 0.0}
     credit_data = db.execute("SELECT * FROM credits WHERE time=(SELECT time FROM credits "
                              "ORDER BY time DESC LIMIT 1)").fetchall()
-    print credit_data
+    for cred in credit_data:
+        data['last_credit_time'] = cred[1]
     return {'status': True, 'message': data}
 
 
