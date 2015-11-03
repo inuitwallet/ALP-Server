@@ -231,6 +231,13 @@ def liquidity(db):
     if not req:
         log.warn('no req provided')
         return {'success': False, 'message': 'no req provided'}
+    if exchange not in app.config['exchanges']:
+        log.warn('invalid exchange')
+        return {'success': False, 'message': '{} is not supported'.format(exchange)}
+    if unit not in app.config['{}.units'.format(exchange)]:
+        log.warn('invalid unit')
+        return {'success': False, 'message': '{} is not supported on {}'.format(unit,
+                                                                                exchange)}
     # use the submitted data to request the users orders
     orders = wrappers[exchange].validate_request(user, unit, req, sign)
     price = get_price()
@@ -343,14 +350,66 @@ def user_orders(db, user):
     :param db:
     :return:
     """
-    print user
-    orders = db.execute("SELECT order_id,exchange,unit,side,rank,order_amount,"
-                        "credited FROM orders WHERE user=? ORDER BY id DESC",
+    orders = db.execute("SELECT id,order_id,exchange,unit,side,rank,order_amount,"
+                        "credited FROM orders WHERE user=? ORDER BY id DESC LIMIT 100",
                         (user,)).fetchall()
-    if not orders:
-        return {'success': False, 'message': 'no orders exist for {}'.format(user)}
+    # build a list for the order output
+    output_orders = []
+    # parse the orders
+    for order in orders:
+        # build the order into a dict
+        output_order = {'order_id': order[1], 'exchange': order[2], 'unit': order[3],
+                        'side': order[4], 'rank': order[5], 'amount': order[6],
+                        'credited': order[7]}
+        # get credit detail if the order has been credited
+        if order[7] == 1:
+            cred = db.execute("SELECT time,total,percentage,reward FROM credits WHERE "
+                              "order_id=?", (order[0],)).fetchone()
+            output_order['credited_time'] = cred[0]
+            output_order['total_liquidity'] = cred[1]
+            output_order['percentage'] = cred[2]
+            output_order['reward'] = cred[3]
+        output_orders.append(output_order)
+    return {'success': True, 'message': output_orders}
 
-    return {'success': True, 'message': orders}
+
+@app.get('/<user>/stats')
+def user_credits(db, user):
+    """
+    Get the users current stats
+    :param db:
+    :return:
+
+    We want:
+
+    total reward
+    reward last round
+    total liquidity provided last round
+    percentage provided last round
+
+    """
+    user_stats = {'total_reward': db.execute("SELECT SUM(reward) FROM credits WHERE "
+                                             "user=?", (user,)).fetchone()[0],
+                  'last_round_reward': 0.0,
+                  'last_round_provided': 0.0,
+                  'last_round_percentage': 0.0}
+    last_credit_time = db.execute("SELECT value FROM info WHERE key=?",
+                                  ('last_credit_time',)).fetchone()[0]
+    round_data = db.execute("SELECT COUNT(id), SUM(reward), SUM(provided), "
+                            "SUM(percentage) FROM credits WHERE user=? and time=?",
+                            (user, last_credit_time)).fetchone()
+    if round_data[0] > 0:
+        user_stats['last_round_reward'] = round(float(round_data[1]), 8)
+        user_stats['last_round_provided'] = round(float(round_data[2]), 8)
+        user_stats['last_round_percentage'] = round(float(round_data[3]) /
+                                                    float(round_data[0]), 8)
+
+
+    return {'success': True, 'message': user_stats}
+
+
+
+
 
 
 def get_price():
