@@ -23,6 +23,9 @@ def build(log):
               "user TEXT, exchange TEXT, unit TEXT, tier TEXT, side TEXT, "
               "order_id NUMBER, provided NUMBER, total NUMBER, percentage NUMBER, "
               "reward NUMBER, paid INTEGER)")
+    log.info('create the stats table')
+    c.execute("CREATE TABLE IF NOT EXISTS stats (id INTEGER PRIMARY KEY, time NUMBER, "
+              "meta TEXT, totals TEXT, rewards TEXT)")
     log.info('create the info table')
     c.execute("CREATE TABLE IF NOT EXISTS info (key Text, value Text)")
     c.execute("INSERT INTO info VALUES (?, ?)", ('last_credit_time', 0))
