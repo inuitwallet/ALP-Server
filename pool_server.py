@@ -367,8 +367,8 @@ def status(db):
                     data['reward-per-nbt-{}-{}-{}-{}'.format(exchange, unit,
                                                              tier, side)] = 0.0
 
-                    total_reward += app.config['{}.{}.{}.{}'.format(exchange, unit,
-                                                                    side, tier)]
+                    total_reward += app.config['{}.{}.{}.{}.reward'.format(exchange, unit,
+                                                                           side, tier)]
 
     # get the number of users
     data['number-of-users'] = db.execute("SELECT COUNT(id) FROM users").fetchone()[0]
