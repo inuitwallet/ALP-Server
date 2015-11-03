@@ -89,22 +89,11 @@ def run_payout_timer():
     payout_timer.start()
 
 
-def run_stats_timer():
-    log.info('running stats timer')
-    stats_timer = Timer(65.0, stats.stats,
-                        kwargs={'app': app, 'log': log})
-    stats_timer.name = 'stats_timer'
-    stats_timer.daemon = True
-    stats_timer.start()
-
-
 if os.getenv('RUN_TIMERS', '0') == '1':
     # Set the timer for credits
     run_credit_timer()
     # Set the timer for payouts
     run_payout_timer()
-    # Set the timer for stats
-    run_stats_timer()
 
 
 def check_headers(headers):
@@ -254,16 +243,16 @@ def liquidity(db):
     for order in orders:
         # Calculate how the order price is from the known good price
         order_deviation = 1.0 - (min(order['price'], price) / max(order['price'], price))
-        # Using the server tolerance determine if the order is tier 1 or tier 2
-        # Only tier 1 is compensated by the server
-        tier = 'tier_2'
+        # Using the server tolerance determine if the order is rank 1 or rank 2
+        # Only rank 1 is compensated by the server
+        rank = 'rank_2'
         if order_deviation <= app.config['{}.{}.{}.tolerance'.format(exchange, unit,
                                                                      order['type'])]:
-            tier = 'tier_1'
+            rank = 'rank_1'
         # save the order details
-        db.execute("INSERT INTO orders ('user','tier','order_id','order_amount',"
+        db.execute("INSERT INTO orders ('user','rank','order_id','order_amount',"
                    "'side','exchange','unit','credited') VALUES (?,?,?,?,?,?,?,?)",
-                   (user, tier, str(order['id']), float(order['amount']),
+                   (user, rank, str(order['id']), float(order['amount']),
                     str(order['type']), exchange, unit, 0))
     log.info('user %s orders saved for validation', user)
     return {'success': True, 'message': 'orders saved for validation'}
@@ -285,19 +274,19 @@ def exchanges():
                                                                     'tolerance'
                                                                     ''.format(exchange,
                                                                               unit)],
-                                            'tier_1': {
+                                            'rank_1': {
                                                 'reward': app.config['{}.{}.ask.{}'
                                                                      '.reward'
                                                                      ''.format(exchange,
                                                                                unit,
-                                                                               'tier_1')]
+                                                                               'rank_1')]
                                                 },
-                                            'tier_2': {
+                                            'rank_2': {
                                                 'reward': app.config['{}.{}.ask.{}'
                                                                      '.reward'
                                                                      ''.format(exchange,
                                                                                unit,
-                                                                               'tier_2')]
+                                                                               'rank_2')]
                                                 }
                                             },
 
@@ -306,19 +295,19 @@ def exchanges():
                                                                     'tolerance'
                                                                     ''.format(exchange,
                                                                               unit)],
-                                            'tier_1': {
+                                            'rank_1': {
                                                 'reward': app.config['{}.{}.bid.{}'
                                                                      '.reward'
                                                                      ''.format(exchange,
                                                                                unit,
-                                                                               'tier_1')]
+                                                                               'rank_1')]
                                                 },
-                                            'tier_2': {
+                                            'rank_2': {
                                                 'reward': app.config['{}.{}.bid.{}'
                                                                      '.reward'
                                                                      ''.format(exchange,
                                                                                unit,
-                                                                               'tier_2')]
+                                                                               'rank_2')]
                                                 }
                                             }
                                     }
@@ -329,7 +318,7 @@ def exchanges():
 def status(db):
     """
     Display the overall pool status.
-    This will be the number of users and the amount of liquidity for each tier, side,
+    This will be the number of users and the amount of liquidity for each rank, side,
     unit, exchange for the last full round and the current round
     :param db:
     :return:
@@ -345,6 +334,23 @@ def status(db):
                                                    'totals': json.loads(stats_data[3]),
                                                    'rewards': json.loads(stats_data[4])}},
                       sort_keys=True)
+
+
+@app.get('/<user>/orders')
+def user_orders(db, user):
+    """
+    Get the users order history
+    :param db:
+    :return:
+    """
+    print user
+    orders = db.execute("SELECT order_id,exchange,unit,side,rank,order_amount,"
+                        "credited FROM orders WHERE user=? ORDER BY id DESC",
+                        (user,)).fetchall()
+    if not orders:
+        return {'success': False, 'message': 'no orders exist for {}'.format(user)}
+
+    return {'success': True, 'message': orders}
 
 
 def get_price():

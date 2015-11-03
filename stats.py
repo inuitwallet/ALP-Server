@@ -1,6 +1,5 @@
 import json
 import sqlite3
-from threading import Timer
 import time
 
 __author__ = 'sammoth'
@@ -11,12 +10,6 @@ def stats(app, log):
     This method runs once every 65 seconds and stores the pool statistics to the database
     :return:
     """
-    # Set the timer going again
-    stats_timer = Timer(60.0, stats,
-                        kwargs={'app': app, 'log': log})
-    stats_timer.name = 'stats_timer'
-    stats_timer.daemon = True
-    stats_timer.start()
     log.info('Start stats collection')
     conn = sqlite3.connect('pool.db')
     db = conn.cursor()
@@ -27,8 +20,8 @@ def stats(app, log):
     meta = {'last-credit-time': last_credit_time, 'number-of-users': 0,
             'number-of-users-active': 0, 'number-of-orders': 0}
     totals = {'all': 0.0, 'bid': 0.0, 'ask': 0.0,
-              'tier_1': 0.0, 'bid-tier_1': 0.0, 'ask-tier_1': 0.0,
-              'tier_2': 0.0, 'bid-tier_2': 0.0, 'ask-tier_2': 0.0}
+              'rank_1': 0.0, 'bid-rank_1': 0.0, 'ask-rank_1': 0.0,
+              'rank_2': 0.0, 'bid-rank_2': 0.0, 'ask-rank_2': 0.0}
     rewards = {}
     # add variable totals based on app.config
     for exchange in app.config['exchanges']:
@@ -40,13 +33,13 @@ def stats(app, log):
                 totals['{}-{}'.format(exchange, side)] = 0.0
                 totals['{}-{}'.format(unit, side)] = 0.0
                 totals['{}-{}-{}'.format(exchange, unit, side)] = 0.0
-                for tier in ['tier_1', 'tier_2']:
-                    totals['{}-{}'.format(unit, tier)] = 0.0
-                    totals['{}-{}-{}'.format(unit, side, tier)] = 0.0
-                    totals['{}-{}'.format(exchange, tier)] = 0.0
-                    totals['{}-{}-{}'.format(exchange, side, tier)] = 0.0
-                    totals['{}-{}-{}-{}'.format(exchange, unit, side, tier)] = 0.0
-                    rewards['{}-{}-{}-{}'.format(exchange, unit, side, tier)] = 0.0
+                for rank in ['rank_1', 'rank_2']:
+                    totals['{}-{}'.format(unit, rank)] = 0.0
+                    totals['{}-{}-{}'.format(unit, side, rank)] = 0.0
+                    totals['{}-{}'.format(exchange, rank)] = 0.0
+                    totals['{}-{}-{}'.format(exchange, side, rank)] = 0.0
+                    totals['{}-{}-{}-{}'.format(exchange, unit, side, rank)] = 0.0
+                    rewards['{}-{}-{}-{}'.format(exchange, unit, side, rank)] = 0.0
     # get the number of users
     meta['number-of-users'] = db.execute("SELECT COUNT(id) FROM users").fetchone()[0]
     # create a list of active users
@@ -56,7 +49,7 @@ def stats(app, log):
                              (last_credit_time,)).fetchall()
     # parse the credit_data
     # credits schema:
-    # id, time, user, exchange, unit, tier, side, order_id, provided, total, percentage,
+    # id, time, user, exchange, unit, rank, side, order_id, provided, total, percentage,
     # reward, paid
     for cred in credit_data:
         # increment the number of orders
@@ -68,9 +61,9 @@ def stats(app, log):
         totals['all'] += float(cred[8])
         # increment side totals
         totals['{}'.format(cred[6])] += float(cred[8])
-        # increment tier totals
+        # increment rank totals
         totals['{}'.format(cred[5])] += float(cred[8])
-        # increment side/tier totals
+        # increment side/rank totals
         totals['{}-{}'.format(cred[6], cred[5])] += float(cred[8])
         # increment exchange totals
         totals['{}'.format(cred[3])] += float(cred[8])
@@ -84,13 +77,13 @@ def stats(app, log):
         totals['{}-{}'.format(cred[4], cred[6])] += float(cred[8])
         # increment exchange/unit/side totals
         totals['{}-{}-{}'.format(cred[3], cred[4], cred[6])] += float(cred[8])
-        # increment exchange/tier totals
+        # increment exchange/rank totals
         totals['{}-{}'.format(cred[3], cred[5])] += float(cred[8])
-        # increment unit/tier totals
+        # increment unit/rank totals
         totals['{}-{}'.format(cred[4], cred[5])] += float(cred[8])
-        # increment exchange/side/tier totals
+        # increment exchange/side/rank totals
         totals['{}-{}-{}'.format(cred[3], cred[6], cred[5])] += float(cred[8])
-        # increment exchange/unit/side/tier totals
+        # increment exchange/unit/side/rank totals
         totals['{}-{}-{}-{}'.format(cred[3], cred[4], cred[6], cred[5])] += float(cred[8])
     # set the number of active users based on the credits parsed
     meta['number-of-users-active'] = len(active_users)
@@ -98,11 +91,11 @@ def stats(app, log):
     for ex in app.config['exchanges']:
         for unit in app.config['{}.units'.format(ex)]:
             for side in ['ask', 'bid']:
-                for tier in ['tier_1', 'tier_2']:
+                for rank in ['rank_1', 'rank_2']:
                     rewards['{}-{}-{}-{}'.format(
-                        ex, unit, side, tier)] = calculate_reward(
-                        app.config['{}.{}.{}.{}.reward'.format(ex, unit, side, tier)],
-                        totals['{}-{}-{}-{}'.format(ex, unit, side, tier)])
+                        ex, unit, side, rank)] = calculate_reward(
+                        app.config['{}.{}.{}.{}.reward'.format(ex, unit, side, rank)],
+                        totals['{}-{}-{}-{}'.format(ex, unit, side, rank)])
     # save the details to the database
     db.execute("INSERT INTO stats (time,meta,totals,rewards) VALUES (?,?,?,?)",
                (int(time.time()), json.dumps(meta),
