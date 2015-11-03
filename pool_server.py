@@ -379,8 +379,8 @@ def status(db):
         data['total-{}'.format(cred[6])] += float(cred[8])
         # increment tier totals
         data['total-{}'.format(cred[5])] += float(cred[8])
-        # increment tier/side totals
-        data['total-{}-{}'.format(cred[5], cred[6])] += float(cred[8])
+        # increment side/tier totals
+        data['total-{}-{}'.format(cred[6], cred[5])] += float(cred[8])
         # increment exchange totals
         data['total-{}'.format(cred[3])] += float(cred[8])
         # increment exchange/unit totals
@@ -397,11 +397,11 @@ def status(db):
         data['total-{}-{}'.format(cred[3], cred[5])] += float(cred[8])
         # increment unit/tier totals
         data['total-{}-{}'.format(cred[4], cred[5])] += float(cred[8])
-        # increment exchange/tier/side totals
-        data['total-{}-{}-{}'.format(cred[3], cred[5], cred[6])] += float(cred[8])
-        # increment exchange/unit/tier/side totals
-        data['total-{}-{}-{}-{}'.format(cred[3], cred[4], cred[5],
-                                        cred[6])] += float(cred[8])
+        # increment exchange/side/tier totals
+        data['total-{}-{}-{}'.format(cred[3], cred[6], cred[5])] += float(cred[8])
+        # increment exchange/unit/side/tier totals
+        data['total-{}-{}-{}-{}'.format(cred[3], cred[4], cred[6],
+                                        cred[5])] += float(cred[8])
     # set the number of active users based on the credits parsed
     data['number-of-users-active'] = len(active_users)
     # calculate the rewards
