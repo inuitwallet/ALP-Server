@@ -366,9 +366,9 @@ def user_orders(db, user):
             cred = db.execute("SELECT time,total,percentage,reward FROM credits WHERE "
                               "order_id=?", (order[0],)).fetchone()
             output_order['credited_time'] = cred[0]
-            output_order['total_liquidity'] = cred[1]
-            output_order['percentage'] = cred[2]
-            output_order['reward'] = cred[3]
+            output_order['total_liquidity'] = round(cred[1], 8)
+            output_order['percentage'] = round(cred[2], 8)
+            output_order['reward'] = round(cred[3], 8)
         output_orders.append(output_order)
     return {'success': True, 'message': output_orders}
 
@@ -388,28 +388,26 @@ def user_credits(db, user):
     percentage provided last round
 
     """
-    user_stats = {'total_reward': db.execute("SELECT SUM(reward) FROM credits WHERE "
-                                             "user=?", (user,)).fetchone()[0],
-                  'last_round_reward': 0.0,
-                  'last_round_provided': 0.0,
-                  'last_round_percentage': 0.0}
-    last_credit_time = db.execute("SELECT value FROM info WHERE key=?",
-                                  ('last_credit_time',)).fetchone()[0]
-    round_data = db.execute("SELECT COUNT(id), SUM(reward), SUM(provided), "
-                            "SUM(percentage) FROM credits WHERE user=? and time=?",
-                            (user, last_credit_time)).fetchone()
-    if round_data[0] > 0:
-        user_stats['last_round_reward'] = round(float(round_data[1]), 8)
-        user_stats['last_round_provided'] = round(float(round_data[2]), 8)
-        user_stats['last_round_percentage'] = round(float(round_data[3]) /
-                                                    float(round_data[0]), 8)
-
-
+    # set the user stats to return if nothing is gathered
+    user_stats = {'total_reward': 0.0,
+                  'history': []}
+    # get the total reward
+    total = db.execute("SELECT SUM(reward) FROM credits WHERE user=?",
+                       (user,)).fetchone()[0]
+    if total:
+        user_stats['total_reward'] = round(float(total), 8)
+    # calculate the last 10 round net worth for this user
+    last_rounds = db.execute("SELECT DISTINCT time FROM credits ORDER BY time DESC "
+                             "LIMIT 50").fetchall()
+    for round_time in last_rounds:
+        worth = db.execute("SELECT SUM(provided), SUM(reward) FROM credits WHERE user=? "
+                           "AND time=?", (user, round_time[0])).fetchone()
+        if worth is not None:
+            round_worth = {'round_time': round_time[0],
+                           'provided': worth[0],
+                           'reward': worth[1]}
+            user_stats['history'].append(round_worth)
     return {'success': True, 'message': user_stats}
-
-
-
-
 
 
 def get_price():
