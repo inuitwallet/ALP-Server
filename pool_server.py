@@ -13,6 +13,7 @@ import credit
 import payout
 import database
 import load_config
+import stats
 from utils import AddressCheck
 from exchanges import Bittrex, BTER, CCEDK, Poloniex, TestExchange
 
@@ -54,7 +55,8 @@ wrappers = {'bittrex': Bittrex(),
             'bter': BTER(),
             'ccedk': CCEDK(),
             'poloniex': Poloniex(),
-            'test_exchange': TestExchange()}
+            'test_exchange': TestExchange(),
+            'test_exchange_2': TestExchange()}
 
 log.info('load pool config')
 app.config.load_config('pool_config')
@@ -87,11 +89,22 @@ def run_payout_timer():
     payout_timer.start()
 
 
+def run_stats_timer():
+    log.info('running stats timer')
+    stats_timer = Timer(65.0, stats.stats,
+                        kwargs={'app': app, 'log': log})
+    stats_timer.name = 'stats_timer'
+    stats_timer.daemon = True
+    stats_timer.start()
+
+
 if os.getenv('RUN_TIMERS', '0') == '1':
     # Set the timer for credits
     run_credit_timer()
     # Set the timer for payouts
     run_payout_timer()
+    # Set the timer for stats
+    run_stats_timer()
 
 
 def check_headers(headers):
@@ -322,104 +335,16 @@ def status(db):
     :return:
     """
     log.info('/status')
-    # get the last credit time
-    last_credit_time = int(db.execute("SELECT value FROM info WHERE key=?",
-                                      ('last_credit_time',)).fetchone()[0])
-    # build the blank data object
-    data = {'last-credit-time': last_credit_time, 'number-of-users': 0,
-            'number-of-users-active': 0, 'number-of-orders': 0, 'total': 0.0,
-            'total-bid': 0.0, 'total-ask': 0.0, 'total-tier_1': 0.0,
-            'total-bid-tier_1': 0.0, 'total-ask-tier_1': 0.0, 'total-tier_2': 0.0,
-            'total-bid-tier_2': 0.0, 'total-ask-tier_2': 0.0}
-    # add variable totals based on app.config
-    for exchange in app.config['exchanges']:
-        data['total-{}'.format(exchange)] = 0.0
-        for unit in app.config['{}.units'.format(exchange)]:
-            data['total-{}'.format(unit)] = 0.0
-            data['total-{}-{}'.format(exchange, unit)] = 0.0
-            for side in ['bid', 'ask']:
-                data['total-{}-{}'.format(exchange, side)] = 0.0
-                data['total-{}-{}'.format(unit, side)] = 0.0
-                data['total-{}-{}-{}'.format(exchange, unit, side)] = 0.0
-                for tier in ['tier_1', 'tier_2']:
-                    data['total-{}-{}'.format(unit, tier)] = 0.0
-                    data['total-{}-{}-{}'.format(unit, side, tier)] = 0.0
-                    data['total-{}-{}'.format(exchange, tier)] = 0.0
-                    data['total-{}-{}-{}'.format(exchange, side, tier)] = 0.0
-                    data['total-{}-{}-{}-{}'.format(exchange, unit, side, tier)] = 0.0
-                    data['reward-per-nbt-{}-{}-{}-{}'.format(exchange, unit,
-                                                             side, tier)] = 0.0
-    # get the number of users
-    data['number-of-users'] = db.execute("SELECT COUNT(id) FROM users").fetchone()[0]
-    # create a list of active users
-    active_users = []
-    # get the latest credit data from the credits field
-    credit_data = db.execute("SELECT * FROM credits WHERE time=?",
-                             (last_credit_time,)).fetchall()
-    # parse the credit_data
-    # credits schema:
-    # id, time, user, exchange, unit, tier, side, order_id, provided, total, percentage,
-    # reward, paid
-    for cred in credit_data:
-        # increment the number of orders
-        data['number-of-orders'] += 1
-        # add newly found users to the active users list
-        if cred[2] not in active_users:
-            active_users.append(cred[2])
-        # increment the total liquidity (this is the total over the entire pool)
-        data['total'] += float(cred[8])
-        # increment side totals
-        data['total-{}'.format(cred[6])] += float(cred[8])
-        # increment tier totals
-        data['total-{}'.format(cred[5])] += float(cred[8])
-        # increment side/tier totals
-        data['total-{}-{}'.format(cred[6], cred[5])] += float(cred[8])
-        # increment exchange totals
-        data['total-{}'.format(cred[3])] += float(cred[8])
-        # increment exchange/unit totals
-        data['total-{}-{}'.format(cred[3], cred[4])] += float(cred[8])
-        # increment exchange/side totals
-        data['total-{}-{}'.format(cred[3], cred[6])] += float(cred[8])
-        # increment unit totals
-        data['total-{}'.format(cred[4])] += float(cred[8])
-        # increment unit/side totals
-        data['total-{}-{}'.format(cred[4], cred[6])] += float(cred[8])
-        # increment exchange/unit/side totals
-        data['total-{}-{}-{}'.format(cred[3], cred[4], cred[6])] += float(cred[8])
-        # increment exchange/tier totals
-        data['total-{}-{}'.format(cred[3], cred[5])] += float(cred[8])
-        # increment unit/tier totals
-        data['total-{}-{}'.format(cred[4], cred[5])] += float(cred[8])
-        # increment exchange/side/tier totals
-        data['total-{}-{}-{}'.format(cred[3], cred[6], cred[5])] += float(cred[8])
-        # increment exchange/unit/side/tier totals
-        data['total-{}-{}-{}-{}'.format(cred[3], cred[4], cred[6],
-                                        cred[5])] += float(cred[8])
-    # set the number of active users based on the credits parsed
-    data['number-of-users-active'] = len(active_users)
-    # calculate the rewards
-    for ex in app.config['exchanges']:
-        for unit in app.config['{}.units'.format(ex)]:
-            for side in ['ask', 'bid']:
-                for tier in ['tier_1', 'tier_2']:
-                    data['reward-per-nbt-{}-{}-{}-{}'.format(
-                        ex, unit, side, tier)] = calculate_reward(
-                        app.config['{}.{}.{}.{}.reward'.format(ex, unit, side, tier)],
-                        data['total-{}-{}-{}-{}'.format(ex, unit, side, tier)])
-    # set the response header as we are dumping to a string to sort keys
+    # get the latest stats from the database
+    stats_data = db.execute("SELECT * FROM stats ORDER BY id DESC LIMIT 1").fetchone()
+    if not stats_data:
+        return {'status': False, 'message': 'no statistics exist yet.'}
     response.set_header('Content-Type', 'application/json')
-    return json.dumps({'status': True, 'message': data}, sort_keys=True)
-
-
-def calculate_reward(reward, total):
-    """
-    Calculate the reward per NBT given the two parameters
-    :param reward:
-    :param total:
-    :return:
-    """
-    return round(float(reward) / float(total), 8) if float(total) > 0.0 else round(
-        float(reward), 8)
+    return json.dumps({'status': True, 'message': {'collected': stats_data[1],
+                                                   'meta': json.loads(stats_data[2]),
+                                                   'totals': json.loads(stats_data[3]),
+                                                   'rewards': json.loads(stats_data[4])}},
+                      sort_keys=True)
 
 
 def get_price():
