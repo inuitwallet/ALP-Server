@@ -321,68 +321,59 @@ def status(db):
     unit, exchange for the last full round and the current round
     :param db:
     :return:
-
-    We want to display
-
-    * Total liquidity provided by pool
-    * Total tier_1 by pool
-    * Total tier_2 by pool
-    * total liquidity by exchange
-    * total tier_1 by exchange
-    * total tier_2 by exchange
-    * total liquidity by exchange/pair
-    * total tier_1 by exchange/pair
-    * total tier_2 by exchange/pair
-    * total liquidity by exchange/pair/side
-    * total tier_1 by exchange/pair/side
-    * total tier_2 by exchange/pair/side
-
-    * number of users
-    * number of active users
-
-    * amount 1 NBT will be rewarded currently
-
     """
     log.info('/status')
-
     # get the last credit time
     last_credit_time = int(db.execute("SELECT value FROM info WHERE key=?",
                                       ('last_credit_time',)).fetchone()[0])
-
     # build the blank data object
-    data = {'last_credit_time': last_credit_time,
-            'total_liquidity': 0.0,
-            'total_bid': 0.0,
-            'total_ask': 0.0,
-            'total_tier_1': 0.0,
-            'total_tier_1_bid': 0.0,
-            'total_tier_1_ask': 0.0,
-            'total_tier_2': 0.0,
-            'total_tier_2_bid': 0.0,
-            'total_tier_2_ask': 0.0,
-            'number_of_users': 0,
-            'number_of_active_users': 0,
-            'number_of_orders': 0}
+    data = {'last-credit-time': last_credit_time,
+            'total-liquidity': 0.0,
+            'total-bid': 0.0,
+            'total-ask': 0.0,
+            'total-tier_1': 0.0,
+            'total-tier_1-bid': 0.0,
+            'total-tier_1-ask': 0.0,
+            'total-tier_2': 0.0,
+            'total-tier_2-bid': 0.0,
+            'total-tier_2-ask': 0.0,
+            'number-of-users': 0,
+            'number-of-active-users': 0,
+            'number-of-orders': 0,
+            'reward-per-nbt': 0.0}
     # add variable totals based on app.config
+    total_reward = 0.0
     for exchange in app.config['exchanges']:
-        data['total_{}'.format(exchange)] = 0.0
+        data['total-{}'.format(exchange)] = 0.0
+        data['reward-per-nbt-{}'.format(exchange)] = 0.0
         for unit in app.config['{}.units'.format(exchange)]:
-            data['total_{}_{}'.format(exchange, unit)] = 0.0
+            data['total-{}-{}'.format(exchange, unit)] = 0.0
+            data['reward-per-nbt-{}-{}'.format(exchange, unit)] = 0.0
             for side in ['bid', 'ask']:
-                data['total_{}_{}'.format(exchange, side)] = 0.0
-                data['total_{}_{}'.format(unit, side)] = 0.0
-                data['total_{}_{}_{}'.format(exchange, unit, side)] = 0.0
+                data['total-{}-{}'.format(exchange, side)] = 0.0
+                data['reward-per-nbt-{}-{}'.format(exchange, side)] = 0.0
+                data['total-{}-{}'.format(unit, side)] = 0.0
+                data['reward-per-nbt-{}-{}'.format(unit, side)] = 0.0
+                data['total-{}-{}-{}'.format(exchange, unit, side)] = 0.0
+                data['reward-per-nbt-{}-{}-{}'.format(exchange, unit, side)] = 0.0
                 for tier in ['tier_1', 'tier_2']:
-                    data['total_{}_{}'.format(exchange, tier)] = 0.0
-                    data['total_{}_{}'.format(unit, tier)] = 0.0
-                    data['total_{}_{}_{}'.format(exchange, tier, side)] = 0.0
-                    data['total_{}_{}_{}_{}'.format(exchange, unit, tier, side)] = 0.0
+                    data['total-{}-{}'.format(exchange, tier)] = 0.0
+                    data['reward-per-nbt-{}-{}'.format(exchange, tier)] = 0.0
+                    data['total-{}-{}'.format(unit, tier)] = 0.0
+                    data['reward-per-nbt-{}-{}'.format(unit, tier)] = 0.0
+                    data['total-{}-{}-{}'.format(exchange, tier, side)] = 0.0
+                    data['reward-per-nbt-{}-{}-{}'.format(exchange, tier, side)] = 0.0
+                    data['total-{}-{}-{}-{}'.format(exchange, unit, tier, side)] = 0.0
+                    data['reward-per-nbt-{}-{}-{}-{}'.format(exchange, unit,
+                                                             tier, side)] = 0.0
+
+                    total_reward += app.config['{}.{}.{}.{}'.format(exchange, unit,
+                                                                    side, tier)]
 
     # get the number of users
-    data['number_of_users'] = db.execute("SELECT COUNT(id) FROM users").fetchone()[0]
+    data['number-of-users'] = db.execute("SELECT COUNT(id) FROM users").fetchone()[0]
     # create a list of active users
     active_users = []
-
     # get the latest credit data from the credits field
     credit_data = db.execute("SELECT * FROM credits WHERE time=?",
                              (last_credit_time,)).fetchall()
@@ -392,38 +383,40 @@ def status(db):
     # reward, paid
     for cred in credit_data:
         # increment the number of orders
-        data['number_of_orders'] += 1
-        # increment the number of active users
+        data['number-of-orders'] += 1
+        # add newly found users to the active users list
         if cred[2] not in active_users:
             active_users.append(cred[2])
         # increment the total liquidity (this is the total over the entire pool)
-        data['total_liquidity'] += float(cred[8])
+        data['total-liquidity'] += float(cred[8])
         # increment side totals
-        data['total_{}'.format(cred[6])] += float(cred[8])
+        data['total-{}'.format(cred[6])] += float(cred[8])
         # increment tier totals
-        data['total_{}'.format(cred[5])] += float(cred[8])
+        data['total-{}'.format(cred[5])] += float(cred[8])
         # increment tier/side totals
-        data['total_{}_{}'.format(cred[5], cred[6])] += float(cred[8])
+        data['total-{}-{}'.format(cred[5], cred[6])] += float(cred[8])
         # increment exchange totals
-        data['total_{}'.format(cred[3])] += float(cred[8])
+        data['total-{}'.format(cred[3])] += float(cred[8])
         # increment exchange/unit totals
-        data['total_{}_{}'.format(cred[3], cred[4])] += float(cred[8])
+        data['total-{}-{}'.format(cred[3], cred[4])] += float(cred[8])
         # increment exchange/side totals
-        data['total_{}_{}'.format(cred[3], cred[6])] += float(cred[8])
+        data['total-{}-{}'.format(cred[3], cred[6])] += float(cred[8])
         # increment unit/side totals
-        data['total_{}_{}'.format(cred[4], cred[6])] += float(cred[8])
+        data['total-{}-{}'.format(cred[4], cred[6])] += float(cred[8])
         # increment exchange/unit/side totals
-        data['total_{}_{}_{}'.format(cred[3], cred[4], cred[6])] += float(cred[8])
+        data['total-{}-{}-{}'.format(cred[3], cred[4], cred[6])] += float(cred[8])
         # increment exchange/tier totals
-        data['total_{}_{}'.format(cred[3], cred[5])] += float(cred[8])
+        data['total-{}-{}'.format(cred[3], cred[5])] += float(cred[8])
         # increment unit/tier totals
-        data['total_{}_{}'.format(cred[4], cred[5])] += float(cred[8])
+        data['total-{}-{}'.format(cred[4], cred[5])] += float(cred[8])
         # increment exchange/tier/side totals
-        data['total_{}_{}_{}'.format(cred[3], cred[5], cred[6])] += float(cred[8])
+        data['total-{}-{}-{}'.format(cred[3], cred[5], cred[6])] += float(cred[8])
         # increment exchange/unit/tier/side totals
-        data['total_{}_{}_{}_{}'.format(cred[3], cred[4], cred[5],
+        data['total-{}-{}-{}-{}'.format(cred[3], cred[4], cred[5],
                                         cred[6])] += float(cred[8])
-    data['number_of_active_users'] = len(active_users)
+    data['number-of-active-users'] = len(active_users)
+    # calculate the rewards
+    data['reward-per-nbt'] = float(total_reward) / float(data['total-liquidity'])
 
     return {'status': True, 'message': data}
 
