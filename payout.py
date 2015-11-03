@@ -24,7 +24,7 @@ def pay(rpc, log, start_timer=True):
     db = conn.cursor()
     rewards = db.execute("SELECT c.id,c.user,c.reward,u.address "
                          "FROM credits AS c INNER JOIN users AS u on "
-                         "u.user=c.user WHERE c.tier=1 AND c.paid=0").fetchall()
+                         "u.user=c.user WHERE c.rank=1 AND c.paid=0").fetchall()
     conn.close()
     # Calculate the total credit for each unique address
     user_rewards = {}

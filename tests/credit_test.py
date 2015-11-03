@@ -41,7 +41,7 @@ class TestCredits(unittest.TestCase):
         conn.commit()
         # create test data
         self.test_data = {
-            'tier_1': {
+            'rank_1': {
                 'TEST_USER_1': {
                     'bid': random.randint(0, 1000),
                     'ask': random.randint(0, 1000)},
@@ -54,7 +54,7 @@ class TestCredits(unittest.TestCase):
                 'TEST_USER_4': {
                     'bid': random.randint(0, 1000),
                     'ask': random.randint(0, 1000)}},
-            'tier_2': {
+            'rank_2': {
                 'TEST_USER_1': {
                     'bid': random.randint(0, 1000),
                     'ask': random.randint(0, 1000)},
@@ -68,14 +68,14 @@ class TestCredits(unittest.TestCase):
                     'bid': random.randint(0, 1000),
                     'ask': random.randint(0, 1000)}}}
         # add some orders to the database for test_data
-        for tier in self.test_data:
-            for user in self.test_data[tier]:
-                for side in self.test_data[tier][user]:
-                    c.execute("INSERT INTO orders ('user','tier','order_id',"
+        for rank in self.test_data:
+            for user in self.test_data[rank]:
+                for side in self.test_data[rank][user]:
+                    c.execute("INSERT INTO orders ('user','rank','order_id',"
                               "'order_amount','side','exchange','unit','credited') "
                               "VALUES (?,?,?,?,?,?,?,?)",
-                              (user, tier, random.randint(0, 250),
-                               self.test_data[tier][user][side], side, 'test_exchange',
+                              (user, rank, random.randint(0, 250),
+                               self.test_data[rank][user][side], side, 'test_exchange',
                                'btc', 0))
         conn.commit()
         conn.close()
@@ -86,8 +86,8 @@ class TestCredits(unittest.TestCase):
         Remove database file
         :return:
         """
-        #self.log.debug('running tearDown')
-        #os.remove('pool.db')
+        self.log.debug('running tearDown')
+        os.remove('pool.db')
 
     def test_get_total_liquidity(self):
         """
@@ -100,26 +100,26 @@ class TestCredits(unittest.TestCase):
         c = conn.cursor()
         orders = c.execute("SELECT * FROM orders").fetchall()
 
-        # get the data for tier_1 as calculated by the test function
+        # get the data for rank_1 as calculated by the test function
         total = credit.get_total_liquidity(self.app, orders)
         # calculate the total from our test data
         # (test data is always for one exchange and currency)
-        real_total = {'tier_1': {'bid': 0.00, 'ask': 0.00},
-                      'tier_2': {'bid': 0.00, 'ask': 0.00}}
-        for user in self.test_data['tier_1']:
-            real_total['tier_1']['bid'] += self.test_data['tier_1'][user]['bid']
-            real_total['tier_1']['ask'] += self.test_data['tier_1'][user]['ask']
-        for user in self.test_data['tier_2']:
-            real_total['tier_2']['bid'] += self.test_data['tier_2'][user]['bid']
-            real_total['tier_2']['ask'] += self.test_data['tier_2'][user]['ask']
-        self.assertEqual(total['tier_1']['test_exchange']['btc']['bid'],
-                         real_total['tier_1']['bid'])
-        self.assertEqual(total['tier_1']['test_exchange']['btc']['ask'],
-                         real_total['tier_1']['ask'])
-        self.assertEqual(total['tier_2']['test_exchange']['btc']['bid'],
-                         real_total['tier_2']['bid'])
-        self.assertEqual(total['tier_2']['test_exchange']['btc']['ask'],
-                         real_total['tier_2']['ask'])
+        real_total = {'rank_1': {'bid': 0.00, 'ask': 0.00},
+                      'rank_2': {'bid': 0.00, 'ask': 0.00}}
+        for user in self.test_data['rank_1']:
+            real_total['rank_1']['bid'] += self.test_data['rank_1'][user]['bid']
+            real_total['rank_1']['ask'] += self.test_data['rank_1'][user]['ask']
+        for user in self.test_data['rank_2']:
+            real_total['rank_2']['bid'] += self.test_data['rank_2'][user]['bid']
+            real_total['rank_2']['ask'] += self.test_data['rank_2'][user]['ask']
+        self.assertEqual(total['rank_1']['test_exchange']['btc']['bid'],
+                         real_total['rank_1']['bid'])
+        self.assertEqual(total['rank_1']['test_exchange']['btc']['ask'],
+                         real_total['rank_1']['ask'])
+        self.assertEqual(total['rank_2']['test_exchange']['btc']['bid'],
+                         real_total['rank_2']['bid'])
+        self.assertEqual(total['rank_2']['test_exchange']['btc']['ask'],
+                         real_total['rank_2']['ask'])
         self.log.debug('ending test_get_total_liquidity')
 
     def test_crediting(self):
@@ -130,12 +130,12 @@ class TestCredits(unittest.TestCase):
         self.log.debug('running test_crediting')
         # calculate the correct values
         total = {
-            'tier_1': {'bid': 0.00, 'ask': 0.00},
-            'tier_2': {'bid': 0.00, 'ask': 0.00}}
-        for tier in self.test_data:
-            for user in self.test_data[tier]:
-                for side in self.test_data[tier][user]:
-                    total[tier][side] += self.test_data[tier][user][side]
+            'rank_1': {'bid': 0.00, 'ask': 0.00},
+            'rank_2': {'bid': 0.00, 'ask': 0.00}}
+        for rank in self.test_data:
+            for user in self.test_data[rank]:
+                for side in self.test_data[rank][user]:
+                    total[rank][side] += self.test_data[rank][user][side]
         # Run the credit on the inserted data
         credit.credit(self.app, None, self.log)
         # get the credit details from the database

@@ -16,11 +16,11 @@ def build(log):
               "address TEXT, exchange TEXT, unit TEXT)")
     log.info('create the orders table')
     c.execute("CREATE TABLE IF NOT EXISTS orders (id INTEGER PRIMARY KEY, user TEXT, "
-              "tier TEXT, order_id TEXT, order_amount NUMBER, side TEXT, exchange "
+              "rank TEXT, order_id TEXT, order_amount NUMBER, side TEXT, exchange "
               "TEXT, unit TEXT, credited INTEGER)")
     log.info('create the credits table')
     c.execute("CREATE TABLE IF NOT EXISTS credits (id INTEGER PRIMARY KEY, time NUMBER, "
-              "user TEXT, exchange TEXT, unit TEXT, tier TEXT, side TEXT, "
+              "user TEXT, exchange TEXT, unit TEXT, rank TEXT, side TEXT, "
               "order_id NUMBER, provided NUMBER, total NUMBER, percentage NUMBER, "
               "reward NUMBER, paid INTEGER)")
     log.info('create the stats table')

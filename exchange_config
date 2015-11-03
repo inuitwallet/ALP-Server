@@ -3,19 +3,19 @@
         "btc": {
             "ask": {
                 "tolerance": 0.0105,
-                "tier_1": {
+                "rank_1": {
                     "reward": 0.25
                 },
-                "tier_2": {
+                "rank_2": {
                     "reward": 0.01
                 }
             },
             "bid": {
                 "tolerance": 0.0105,
-                "tier_1": {
+                "rank_1": {
                     "reward": 0.15
                 },
-                "tier_2": {
+                "rank_2": {
                     "reward": 0.00
                 }
             }
@@ -23,19 +23,19 @@
         "ppc": {
             "ask": {
                 "tolerance": 0.0105,
-                "tier_1": {
+                "rank_1": {
                     "reward": 0.25
                 },
-                "tier_2": {
+                "rank_2": {
                     "reward": 0.15
                 }
             },
             "bid": {
                 "tolerance": 0.0105,
-                "tier_1": {
+                "rank_1": {
                     "reward": 0.15
                 },
-                "tier_2": {
+                "rank_2": {
                     "reward": 0.00
                 }
             }
@@ -45,19 +45,19 @@
         "usd": {
             "ask": {
                 "tolerance": 0.0105,
-                "tier_1": {
+                "rank_1": {
                     "reward": 0.11
                 },
-                "tier_2": {
+                "rank_2": {
                     "reward": 0.01
                 }
             },
             "bid": {
                 "tolerance": 0.0105,
-                "tier_1": {
+                "rank_1": {
                     "reward": 0.37
                 },
-                "tier_2": {
+                "rank_2": {
                     "reward": 0.00
                 }
             }

@@ -2,13 +2,14 @@ from threading import Timer, Thread, enumerate
 import sqlite3
 import time
 from bitcoinrpc.authproxy import JSONRPCException
+import stats
 
 __author__ = 'sammoth'
 
 """
 Every thing in this module pertains to the crediting of orders.
 LPCs submit their signed 'open_orders' query through the 'liquidity' server end point.
-The server validates each order and determines if they are tier 1 or 2 using the price
+The server validates each order and determines if they are rank 1 or 2 using the price
 at that moment.
 The credit function runs each minute and gathers the submitted orders from the database
 For each user it calculates what percentage of the total submitted liquidity they have
@@ -19,7 +20,7 @@ It also uses that data to submit liquidity info back to Nu
 
 def credit(app, rpc, log):
     """
-    This runs every minute and calculates the total liquidity on order (tier 1) and
+    This runs every minute and calculates the total liquidity on order (rank 1) and
     each users proportion of it
     :return:
     """
@@ -59,7 +60,7 @@ def credit(app, rpc, log):
         # save the full order in our deduped list
         deduped_orders.append(order)
 
-    # get the total amount of liquidity by tier
+    # get the total amount of liquidity by rank
     total = get_total_liquidity(app, deduped_orders)
 
     # We've calculated the totals so submit them as liquidity_info
@@ -70,7 +71,7 @@ def credit(app, rpc, log):
         # calculate the details
         total_liquidity, percentage, reward = calculate_reward(app, order, total)
         # and save to the database
-        db.execute("INSERT INTO credits (time,user,exchange,unit,tier,side,order_id,"
+        db.execute("INSERT INTO credits (time,user,exchange,unit,rank,side,order_id,"
                    "provided,total,percentage,reward,paid) VALUES (?,?,?,?,?,?,?,?,?,?,"
                    "?,?)", (credit_time, order[1], order[6], order[7], order[2],
                             order[5], order[0], order[4], total_liquidity,
@@ -80,32 +81,33 @@ def credit(app, rpc, log):
     conn.commit()
     conn.close()
     log.info('End Credit')
+    stats.stats(app, log)
     return
 
 
 def get_total_liquidity(app, orders):
     """
     Given a list of orders from the database, calculate the total amount of liquidity
-    for the given tier
+    for the given rank
     :param orders:
-    :param tier:
+    :param rank:
     :return:
     """
     # build the liquidity object
-    liquidity = {'tier_1': {}, 'tier_2': {}}
-    for tier in ['tier_1', 'tier_2']:
+    liquidity = {'rank_1': {}, 'rank_2': {}}
+    for rank in ['rank_1', 'rank_2']:
         for exchange in app.config['exchanges']:
-            if exchange not in liquidity[tier]:
-                liquidity[tier][exchange] = {}
+            if exchange not in liquidity[rank]:
+                liquidity[rank][exchange] = {}
             for unit in app.config['{}.units'.format(exchange)]:
-                if unit not in liquidity[tier][exchange]:
-                    liquidity[tier][exchange][unit] = {}
+                if unit not in liquidity[rank][exchange]:
+                    liquidity[rank][exchange][unit] = {}
                 for side in ['ask', 'bid']:
-                    liquidity[tier][exchange][unit][side] = 0.00
+                    liquidity[rank][exchange][unit][side] = 0.00
     # parse the orders and update the liquidity object accordingly
     for order in orders:
         # order schema
-        # id, user, tier, order_id, order_amount, side, exchange, unit, credited
+        # id, user, rank, order_id, order_amount, side, exchange, unit, credited
         liquidity[order[2]][order[6]][order[7]][order[5]] += float(order[4])
     return liquidity
 
@@ -119,15 +121,15 @@ def calculate_reward(app, order, total):
     :return:
     """
     # order schema
-    # id, user, tier, order_id, order_amount, side, exchange, unit, credited
+    # id, user, rank, order_id, order_amount, side, exchange, unit, credited
     # amount provided = order_amount
     provided = float(order[4])
-    # total liquidity = total[tier][exchange][unit][side]
+    # total liquidity = total[rank][exchange][unit][side]
     total_liquidity = float(total[order[2]][order[6]][order[7]][order[5]])
     # Calculate the percentage of the total
     percentage = (provided / total_liquidity) if total_liquidity > 0.00 else 0.00
     # Use the percentage to calculate the reward for this round
-    # reward can be found in app.config['exchange.unit.side.tier.reward']
+    # reward can be found in app.config['exchange.unit.side.rank.reward']
     reward = percentage * app.config['{}.{}.{}.{}.reward'.format(order[6], order[7],
                                                                  order[5], order[2])]
     return total_liquidity, percentage, reward
@@ -135,29 +137,29 @@ def calculate_reward(app, order, total):
 
 def liquidity_info(app, rpc, log,  total):
     """
-    Calculate the current amount of liquidity in tiers 1 and 2 and submit them to Nu
+    Calculate the current amount of liquidity in ranks 1 and 2 and submit them to Nu
     :return:
     """
-    for exchange in total['tier_1']:
-        for unit in total['tier_1'][exchange]:
+    for exchange in total['rank_1']:
+        for unit in total['rank_1'][exchange]:
             identifier = "1:{}:{}:{}".format('NBT{}'.format(unit.upper()),
                                              exchange,
                                              app.config['pool.name'])
             try:
-                rpc.liquidityinfo('B', total['tier_1'][exchange][unit]['bid'],
-                                  total['tier_1'][exchange][unit]['ask'],
+                rpc.liquidityinfo('B', total['rank_1'][exchange][unit]['bid'],
+                                  total['rank_1'][exchange][unit]['ask'],
                                   app.config['pool.grant_address'], identifier)
             except JSONRPCException as e:
-                log.error('Sending tier 1 liquidity info failed: {}'.format(e.message))
+                log.error('Sending rank 1 liquidity info failed: {}'.format(e.message))
 
-    for exchange in total['tier_2']:
-        for unit in total['tier_2'][exchange]:
+    for exchange in total['rank_2']:
+        for unit in total['rank_2'][exchange]:
             identifier = "2:{}:{}:{}".format('NBT{}'.format(unit.upper()),
                                              exchange,
                                              app.config['pool.name'])
             try:
-                rpc.liquidityinfo('B', total['tier_2'][exchange][unit]['bid'],
-                                  total['tier_2'][exchange][unit]['ask'],
+                rpc.liquidityinfo('B', total['rank_2'][exchange][unit]['bid'],
+                                  total['rank_2'][exchange][unit]['ask'],
                                   app.config['pool.grant_address'], identifier)
             except JSONRPCException as e:
-                log.error('Sending tier 2 liquidity info failed: {}'.format(e.message))
+                log.error('Sending rank 2 liquidity info failed: {}'.format(e.message))
