@@ -54,6 +54,8 @@ def credit(app, rpc, log):
                                              order[7])
         # check if the order exists in our known orders list
         if order_hash in known_orders:
+            # if this is a duplicate order, mark it as such in the database
+            db.execute("UPDATE orders SET credited=-1 WHERE id=?", (order[0],))
             continue
         # add it now as it is known
         known_orders.append(order_hash)
