@@ -329,33 +329,30 @@ def status(db):
     data = {'last-credit-time': last_credit_time, 'number-of-users': 0,
             'number-of-users-active': 0, 'number-of-orders': 0, 'total': 0.0,
             'reward-per-nbt': 0.0, 'total-bid': 0.0, 'total-ask': 0.0,
-            'total-tier_1': 0.0, 'total-tier_1-bid': 0.0, 'total-tier_1-ask': 0.0,
-            'total-tier_2': 0.0, 'total-tier_2-bid': 0.0, 'total-tier_2-ask': 0.0}
+            'total-tier_1': 0.0, 'total-bid-tier_1': 0.0, 'total-ask-tier_1': 0.0,
+            'total-tier_2': 0.0, 'total-bid-tier_2': 0.0, 'total-ask-tier_2': 0.0}
     # add variable totals based on app.config
     total_reward = 0.0
     for exchange in app.config['exchanges']:
         data['total-{}'.format(exchange)] = 0.0
         data['reward-per-nbt-{}'.format(exchange)] = 0.0
         for unit in app.config['{}.units'.format(exchange)]:
+            data['total-{}'.format(unit)] = 0.0
             data['total-{}-{}'.format(exchange, unit)] = 0.0
             data['reward-per-nbt-{}-{}'.format(exchange, unit)] = 0.0
             for side in ['bid', 'ask']:
                 data['total-{}-{}'.format(exchange, side)] = 0.0
-                data['reward-per-nbt-{}-{}'.format(exchange, side)] = 0.0
                 data['total-{}-{}'.format(unit, side)] = 0.0
-                data['reward-per-nbt-{}-{}'.format(unit, side)] = 0.0
                 data['total-{}-{}-{}'.format(exchange, unit, side)] = 0.0
                 data['reward-per-nbt-{}-{}-{}'.format(exchange, unit, side)] = 0.0
                 for tier in ['tier_1', 'tier_2']:
-                    data['total-{}-{}'.format(exchange, tier)] = 0.0
-                    data['reward-per-nbt-{}-{}'.format(exchange, tier)] = 0.0
                     data['total-{}-{}'.format(unit, tier)] = 0.0
-                    data['reward-per-nbt-{}-{}'.format(unit, tier)] = 0.0
-                    data['total-{}-{}-{}'.format(exchange, tier, side)] = 0.0
-                    data['reward-per-nbt-{}-{}-{}'.format(exchange, tier, side)] = 0.0
-                    data['total-{}-{}-{}-{}'.format(exchange, unit, tier, side)] = 0.0
+                    data['total-{}-{}-{}'.format(unit, side, tier)] = 0.0
+                    data['total-{}-{}'.format(exchange, tier)] = 0.0
+                    data['total-{}-{}-{}'.format(exchange, side, tier)] = 0.0
+                    data['total-{}-{}-{}-{}'.format(exchange, unit, side, tier)] = 0.0
                     data['reward-per-nbt-{}-{}-{}-{}'.format(exchange, unit,
-                                                             tier, side)] = 0.0
+                                                             side, tier)] = 0.0
 
                     total_reward += app.config['{}.{}.{}.{}.reward'.format(exchange, unit,
                                                                            side, tier)]
@@ -390,6 +387,8 @@ def status(db):
         data['total-{}-{}'.format(cred[3], cred[4])] += float(cred[8])
         # increment exchange/side totals
         data['total-{}-{}'.format(cred[3], cred[6])] += float(cred[8])
+        # increment unit totals
+        data['total-{}'.format(cred[4])] += float(cred[8])
         # increment unit/side totals
         data['total-{}-{}'.format(cred[4], cred[6])] += float(cred[8])
         # increment exchange/unit/side totals
@@ -406,11 +405,48 @@ def status(db):
     # set the number of active users based on the credits parsed
     data['number-of-users-active'] = len(active_users)
     # calculate the rewards
-    data['reward-per-nbt'] = round((float(total_reward) / float(data['total'])), 8) if \
-        float(data['total']) > 0.0 else round(float(total_reward), 8)
-
+    data['reward-per-nbt'] = calculate_reward(total_reward, data['total'])
+    for ex in app.config['exchanges']:
+        exchange_reward = 0.0
+        for unit in app.config['{}.units'.format(ex)]:
+            unit_reward = 0.0
+            for side in ['ask', 'bid']:
+                side_reward = 0.0
+                for tier in ['tier_1', 'tier_2']:
+                    exchange_reward += app.config['{}.{}.{}.{}.reward'.format(ex, unit,
+                                                                              side, tier)]
+                    unit_reward += app.config['{}.{}.{}.{}.reward'.format(ex, unit, side,
+                                                                          tier)]
+                    side_reward += app.config['{}.{}.{}.{}.reward'.format(ex, unit, side,
+                                                                          tier)]
+                    # reward per nbt for each exchange/unit/side/tier
+                    data['reward-per-nbt-{}-{}-{}-{}'.format(
+                        ex, unit, side, tier)] = calculate_reward(
+                        app.config['{}.{}.{}.{}.reward'.format(ex, unit, side, tier)],
+                        data['total-{}-{}-{}-{}'.format(ex, unit, side, tier)])
+                # reward per nbt for each side/unit/exchange
+                data['reward-per-nbt-{}-{}-{}'.format(ex, unit, side)] = calculate_reward(
+                    side_reward, data['total-{}-{}-{}'.format(ex, unit, side)])
+            # reward per nbt for each unit on this exchange
+            data['reward-per-nbt-{}-{}'.format(ex, unit)] = calculate_reward(
+                unit_reward, data['total-{}-{}'.format(ex, unit)])
+        # reward per nbt for each exchange
+        data['reward-per-nbt-{}'.format(ex)] = calculate_reward(
+            exchange_reward, data['total-{}'.format(ex)])
+    # set the response header as we are dumping to a string to sort keys
     response.set_header('Content-Type', 'application/json')
     return json.dumps({'status': True, 'message': data}, sort_keys=True)
+
+
+def calculate_reward(reward, total):
+    """
+    Calculate the reward per NBT given the two parameters
+    :param reward:
+    :param total:
+    :return:
+    """
+    return round(float(reward) / float(total), 8) if float(total) > 0.0 else round(
+        float(reward), 8)
 
 
 def get_price():
