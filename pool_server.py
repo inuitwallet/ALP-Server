@@ -416,7 +416,8 @@ def status(db):
                                         cred[6])] += float(cred[8])
     data['number-of-active-users'] = len(active_users)
     # calculate the rewards
-    data['reward-per-nbt'] = float(total_reward) / float(data['total-liquidity'])
+    data['reward-per-nbt'] = (float(total_reward) / float(data['total-liquidity'])) if \
+        float(data['total-liquidity']) > 0.0 else float(total_reward)
 
     return {'status': True, 'message': data}
 
