@@ -406,7 +406,7 @@ def status(db):
     # set the number of active users based on the credits parsed
     data['number-of-users-active'] = len(active_users)
     # calculate the rewards
-    data['reward-per-nbt'] = calculate_reward(total_reward, data['total'])
+    #data['reward-per-nbt'] = calculate_reward(total_reward, data['total'])
     for ex in app.config['exchanges']:
         #exchange_reward = 0.0
         for unit in app.config['{}.units'.format(ex)]:
