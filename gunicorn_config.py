@@ -8,3 +8,5 @@ def on_starting(server):
     pool_server.run_credit_timer()
     # Set the timer for payouts
     pool_server.run_payout_timer()
+    # Set the timer for stats
+    pool_server.run_stats_timer()
