@@ -359,7 +359,10 @@ def status(db):
             'total_tier_1_ask': 0.0,
             'total_tier_2': 0.0,
             'total_tier_2_bid': 0.0,
-            'total_tier_2_ask': 0.0}
+            'total_tier_2_ask': 0.0,
+            'number_of_users': 0,
+            'number_of_active_users': 0,
+            'number_of_orders': 0}
     # add variable totals based on app.config
     for exchange in app.config['exchanges']:
         data['total_{}'.format(exchange)] = 0.0
@@ -375,6 +378,11 @@ def status(db):
                     data['total_{}_{}_{}'.format(exchange, tier, side)] = 0.0
                     data['total_{}_{}_{}_{}'.format(exchange, unit, tier, side)] = 0.0
 
+    # get the number of users
+    data['number_of_users'] = db.execute("SELECT COUNT(id) FROM users").fetchone()[0]
+    # create a list of active users
+    active_users = []
+
     # get the latest credit data from the credits field
     credit_data = db.execute("SELECT * FROM credits WHERE time=?",
                              (last_credit_time,)).fetchall()
@@ -383,7 +391,11 @@ def status(db):
     # id, time, user, exchange, unit, tier, side, order_id, provided, total, percentage,
     # reward, paid
     for cred in credit_data:
-        print cred
+        # increment the number of orders
+        data['number_of_orders'] += 1
+        # increment the number of active users
+        if cred[2] not in active_users:
+            active_users.append(cred[2])
         # increment the total liquidity (this is the total over the entire pool)
         data['total_liquidity'] += float(cred[8])
         # increment side totals
@@ -408,9 +420,10 @@ def status(db):
         data['total_{}_{}'.format(cred[4], cred[5])] += float(cred[8])
         # increment exchange/tier/side totals
         data['total_{}_{}_{}'.format(cred[3], cred[5], cred[6])] += float(cred[8])
-        # incement exchange/unit/tier/side totals
+        # increment exchange/unit/tier/side totals
         data['total_{}_{}_{}_{}'.format(cred[3], cred[4], cred[5],
                                         cred[6])] += float(cred[8])
+    data['number_of_active_users'] = len(active_users)
 
     return {'status': True, 'message': data}
 
