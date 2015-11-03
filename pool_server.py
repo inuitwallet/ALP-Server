@@ -1,13 +1,12 @@
 import json
 import logging
 import os
-from threading import Timer, enumerate
-from datetime import datetime
+from threading import Timer
 from requestlogger import WSGILogger, ApacheFormatter
 from logging.handlers import TimedRotatingFileHandler
 import bottle
 from bottle_sqlite import SQLitePlugin
-from bottle import run, request
+from bottle import run, request, response
 from bitcoinrpc.authproxy import AuthServiceProxy
 import time
 import credit
@@ -327,20 +326,11 @@ def status(db):
     last_credit_time = int(db.execute("SELECT value FROM info WHERE key=?",
                                       ('last_credit_time',)).fetchone()[0])
     # build the blank data object
-    data = {'last-credit-time': last_credit_time,
-            'total-liquidity': 0.0,
-            'total-bid': 0.0,
-            'total-ask': 0.0,
-            'total-tier_1': 0.0,
-            'total-tier_1-bid': 0.0,
-            'total-tier_1-ask': 0.0,
-            'total-tier_2': 0.0,
-            'total-tier_2-bid': 0.0,
-            'total-tier_2-ask': 0.0,
-            'number-of-users': 0,
-            'number-of-active-users': 0,
-            'number-of-orders': 0,
-            'reward-per-nbt': 0.0}
+    data = {'last-credit-time': last_credit_time, 'number-of-users': 0,
+            'number-of-users-active': 0, 'number-of-orders': 0, 'total': 0.0,
+            'reward-per-nbt': 0.0, 'total-bid': 0.0, 'total-ask': 0.0,
+            'total-tier_1': 0.0, 'total-tier_1-bid': 0.0, 'total-tier_1-ask': 0.0,
+            'total-tier_2': 0.0, 'total-tier_2-bid': 0.0, 'total-tier_2-ask': 0.0}
     # add variable totals based on app.config
     total_reward = 0.0
     for exchange in app.config['exchanges']:
@@ -369,7 +359,6 @@ def status(db):
 
                     total_reward += app.config['{}.{}.{}.{}.reward'.format(exchange, unit,
                                                                            side, tier)]
-
     # get the number of users
     data['number-of-users'] = db.execute("SELECT COUNT(id) FROM users").fetchone()[0]
     # create a list of active users
@@ -377,7 +366,7 @@ def status(db):
     # get the latest credit data from the credits field
     credit_data = db.execute("SELECT * FROM credits WHERE time=?",
                              (last_credit_time,)).fetchall()
-    # parse the data
+    # parse the credit_data
     # credits schema:
     # id, time, user, exchange, unit, tier, side, order_id, provided, total, percentage,
     # reward, paid
@@ -388,7 +377,7 @@ def status(db):
         if cred[2] not in active_users:
             active_users.append(cred[2])
         # increment the total liquidity (this is the total over the entire pool)
-        data['total-liquidity'] += float(cred[8])
+        data['total'] += float(cred[8])
         # increment side totals
         data['total-{}'.format(cred[6])] += float(cred[8])
         # increment tier totals
@@ -414,12 +403,14 @@ def status(db):
         # increment exchange/unit/tier/side totals
         data['total-{}-{}-{}-{}'.format(cred[3], cred[4], cred[5],
                                         cred[6])] += float(cred[8])
-    data['number-of-active-users'] = len(active_users)
+    # set the number of active users based on the credits parsed
+    data['number-of-users-active'] = len(active_users)
     # calculate the rewards
-    data['reward-per-nbt'] = (float(total_reward) / float(data['total-liquidity'])) if \
-        float(data['total-liquidity']) > 0.0 else float(total_reward)
+    data['reward-per-nbt'] = round((float(total_reward) / float(data['total'])), 8) if \
+        float(data['total']) > 0.0 else round(float(total_reward), 8)
 
-    return {'status': True, 'message': data}
+    response.set_header('Content-Type', 'application/json')
+    return json.dumps({'status': True, 'message': data}, sort_keys=True)
 
 
 def get_price():
