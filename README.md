@@ -77,6 +77,10 @@ The ALP server also exposes some endpoints that can be used for statistics colle
 or logging. These are as follows:  
 ```
 GET /exchanges
+```
 Shows an object containing the exchanges supported by this ALP 
 and the parameters of each of them.
 ```
+GET /status  
+```
+Shows a large data object containing lots of data about the performance of the pool and the distribution of liquidity on it. For more information and a break down of the data shown, see the Stats section. 
