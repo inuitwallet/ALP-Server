@@ -63,7 +63,8 @@ POST /register
     "unit": "A supported currency code"  
 }  
 ```
-`Allows a client to register a new user for the exchnage/unit combination supplied. The exchange API public key serves as a user identifier.`
+>Allows a client to register a new user for the exchnage/unit combination supplied. The exchange API public key serves as a user identifier.  
+
 ```
 POST /liquidity
 {
@@ -74,26 +75,29 @@ POST /liquidity
    "unit": The target currency" 
 }
 ```
-`Allows a client to submit a signed 'get_orders' request to the server. The server will use that to collect orders on behalf of the specified user and add them to the pool to be credited.`
+>Allows a client to submit a signed 'get_orders' request to the server. The server will use that to collect orders on behalf of the specified user and add them to the pool to be credited.  
+
 The ALP server also exposes some endpoints that can be used for statistics collection 
 or logging. These are as follows:  
 ```
 GET /exchanges
 ```
-`Shows an object containing the exchanges supported by this ALP 
-and the parameters of each of them.`
+>Shows an object containing the exchanges supported by this ALP and the parameters of each of them.  
+
 ```
 GET /status  
 ```
-`Shows a large data object containing lots of data about the performance of the pool and the distribution of liquidity on it. For more information and a break down of the data shown, see the Stats section.`
+>Shows a large data object containing lots of data about the performance of the pool and the distribution of liquidity on it. For more information and a break down of the data shown, see the Stats section.  
+
 ```
 GET /<user>/orders
 ```
-`Shows the orders on record for the given user. This includes details of any credits associated with the order.`
+>Shows the orders on record for the given user. This includes details of any credits associated with the order.  
+
 ```
 GET /<user>/stats
 ```
-`Shows the statistics for the given user. This includes a history of the users net worth to allow for easier tracking of profit/loss.`
+>Shows the statistics for the given user. This includes a history of the users net worth to allow for easier tracking of profit/loss.  
 
 ---
 ###Stats
