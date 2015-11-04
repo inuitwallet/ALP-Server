@@ -13,6 +13,7 @@ import load_config
 
 
 class TestCredits(unittest.TestCase):
+
     def setUp(self):
         """
         Set up the database with some orders ready for a credit
@@ -40,7 +41,7 @@ class TestCredits(unittest.TestCase):
         conn.commit()
         # create test data
         self.test_data = {
-            'tier_1': {
+            'rank_1': {
                 'TEST_USER_1': {
                     'bid': random.randint(0, 1000),
                     'ask': random.randint(0, 1000)},
@@ -53,7 +54,7 @@ class TestCredits(unittest.TestCase):
                 'TEST_USER_4': {
                     'bid': random.randint(0, 1000),
                     'ask': random.randint(0, 1000)}},
-            'tier_2': {
+            'rank_2': {
                 'TEST_USER_1': {
                     'bid': random.randint(0, 1000),
                     'ask': random.randint(0, 1000)},
@@ -67,15 +68,15 @@ class TestCredits(unittest.TestCase):
                     'bid': random.randint(0, 1000),
                     'ask': random.randint(0, 1000)}}}
         # add some orders to the database for test_data
-        for tier in self.test_data:
-            for user in self.test_data[tier]:
-                for side in self.test_data[tier][user]:
-                    c.execute("INSERT INTO orders ('user','tier','order_id',"
-                              "'order_amount','order_type','exchange','unit') "
-                              "VALUES (?,?,?,?,?,?,?)",
-                              (user, tier, random.randint(0, 250),
-                               self.test_data[tier][user][side], side, 'test_exchange',
-                               'btc'))
+        for rank in self.test_data:
+            for user in self.test_data[rank]:
+                for side in self.test_data[rank][user]:
+                    c.execute("INSERT INTO orders ('user','rank','order_id',"
+                              "'order_amount','side','exchange','unit','credited') "
+                              "VALUES (?,?,?,?,?,?,?,?)",
+                              (user, rank, random.randint(0, 250),
+                               self.test_data[rank][user][side], side, 'test_exchange',
+                               'btc', 0))
         conn.commit()
         conn.close()
         self.log.debug('ending setUp')
@@ -99,29 +100,26 @@ class TestCredits(unittest.TestCase):
         c = conn.cursor()
         orders = c.execute("SELECT * FROM orders").fetchall()
 
-        # get the data for tier_1 as calculated by the test function
-        tier_1_total = credit.get_total_liquidity(self.app, orders, 'tier_1')
+        # get the data for rank_1 as calculated by the test function
+        total = credit.get_total_liquidity(self.app, orders)
         # calculate the total from our test data
         # (test data is always for one exchange and currency)
-        real_tier_1_total = {'bid': 0.00, 'ask': 0.00}
-        for user in self.test_data['tier_1']:
-            real_tier_1_total['bid'] += self.test_data['tier_1'][user]['bid']
-            real_tier_1_total['ask'] += self.test_data['tier_1'][user]['ask']
-        self.assertEqual(tier_1_total['test_exchange']['btc']['bid'],
-                         real_tier_1_total['bid'])
-        self.assertEqual(tier_1_total['test_exchange']['btc']['ask'],
-                         real_tier_1_total['ask'])
-
-        # same for tier 2
-        tier_2_total = credit.get_total_liquidity(self.app, orders, 'tier_2')
-        real_tier_2_total = {'bid': 0.00, 'ask': 0.00}
-        for user in self.test_data['tier_2']:
-            real_tier_2_total['bid'] += self.test_data['tier_2'][user]['bid']
-            real_tier_2_total['ask'] += self.test_data['tier_2'][user]['ask']
-        self.assertEqual(tier_2_total['test_exchange']['btc']['bid'],
-                         real_tier_2_total['bid'])
-        self.assertEqual(tier_2_total['test_exchange']['btc']['ask'],
-                         real_tier_2_total['ask'])
+        real_total = {'rank_1': {'bid': 0.00, 'ask': 0.00},
+                      'rank_2': {'bid': 0.00, 'ask': 0.00}}
+        for user in self.test_data['rank_1']:
+            real_total['rank_1']['bid'] += self.test_data['rank_1'][user]['bid']
+            real_total['rank_1']['ask'] += self.test_data['rank_1'][user]['ask']
+        for user in self.test_data['rank_2']:
+            real_total['rank_2']['bid'] += self.test_data['rank_2'][user]['bid']
+            real_total['rank_2']['ask'] += self.test_data['rank_2'][user]['ask']
+        self.assertEqual(total['rank_1']['test_exchange']['btc']['bid'],
+                         real_total['rank_1']['bid'])
+        self.assertEqual(total['rank_1']['test_exchange']['btc']['ask'],
+                         real_total['rank_1']['ask'])
+        self.assertEqual(total['rank_2']['test_exchange']['btc']['bid'],
+                         real_total['rank_2']['bid'])
+        self.assertEqual(total['rank_2']['test_exchange']['btc']['ask'],
+                         real_total['rank_2']['ask'])
         self.log.debug('ending test_get_total_liquidity')
 
     def test_crediting(self):
@@ -132,14 +130,14 @@ class TestCredits(unittest.TestCase):
         self.log.debug('running test_crediting')
         # calculate the correct values
         total = {
-            'tier_1': {'bid': 0.00, 'ask': 0.00},
-            'tier_2': {'bid': 0.00, 'ask': 0.00}}
-        for tier in self.test_data:
-            for user in self.test_data[tier]:
-                for side in self.test_data[tier][user]:
-                    total[tier][side] += self.test_data[tier][user][side]
+            'rank_1': {'bid': 0.00, 'ask': 0.00},
+            'rank_2': {'bid': 0.00, 'ask': 0.00}}
+        for rank in self.test_data:
+            for user in self.test_data[rank]:
+                for side in self.test_data[rank][user]:
+                    total[rank][side] += self.test_data[rank][user][side]
         # Run the credit on the inserted data
-        credit.credit(self.app, None, self.log, False)
+        credit.credit(self.app, None, self.log)
         # get the credit details from the database
         conn = sqlite3.connect('pool.db')
         c = conn.cursor()
@@ -149,13 +147,13 @@ class TestCredits(unittest.TestCase):
         for cred in credit_data:
             # check the total liquidity is correct
             this_total = total[cred[5]][cred[6]]
-            self.assertEqual(cred[8], this_total)
+            self.assertEqual(cred[9], this_total)
             # check the amount provided is correct
             this_amount = self.test_data[cred[5]][cred[2]][cred[6]]
-            self.assertEqual(cred[7], this_amount)
+            self.assertEqual(cred[8], this_amount)
             # check the percentage is correct
             this_percentage = (this_amount / this_total) * 100
-            self.assertEqual(cred[9], this_percentage)
+            self.assertEqual(cred[10], this_percentage)
             # check the reward is credited correctly
             this_reward = (this_percentage / 100) * self.app.config['{}.{}.'
                                                                     '{}.{}.reward'
@@ -165,5 +163,5 @@ class TestCredits(unittest.TestCase):
                                                                         cred[6],
                                                                         cred[5])]
             # Asert almost equal to avoid rounding errors at 10 d.p.
-            self.assertAlmostEqual(cred[10], this_reward, 15)
+            self.assertAlmostEqual(cred[11], this_reward, 15)
         self.log.debug('ending test_crediting')

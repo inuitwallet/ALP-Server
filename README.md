@@ -16,8 +16,8 @@ provider (LP) is a 'Market Maker' which can leave them susceptible to and advers
 affected 
 by sharp swings in the market. The liquidity that it most at risk from this market risk
  is the funds directly supporting the peg (at just a bit more than and just a bit less 
- than $1). We call this tier 1 liquidity. The ALP model allows Nu to compensate LPs for 
- the risk of tier 1 funds and makes Liquidity provision a more attractive proposition.
+ than $1). We call this rank 1 liquidity. The ALP model allows Nu to compensate LPs for 
+ the risk of rank 1 funds and makes Liquidity provision a more attractive proposition.
    
 
 ### How does the system work?
@@ -25,24 +25,24 @@ LPs run [NuBot](https://bitbucket.org/JordanLeePeershares/nubottrading) which pl
 orders on their behalf at one of the 
 [exchanges](https://nubits.com/exchanges/nubits-exchanges) 
 that allows NuBit trading. NuBot implements a 'parametric order book' design meaning 
-that only a small percentage of the funds is used to directly support the $1 peg (tier 
+that only a small percentage of the funds is used to directly support the $1 peg (rank 
 1). The rest of the funds are placed in orders away from the peg which give it visible 
-support but keep the funds at less risk of market movements (tier 2).  
+support but keep the funds at less risk of market movements (rank 2).  
 If an ALP has been enabled in NuBot it sends some data to the ALP server every 60 
 seconds. This data allows the ALP server to query the exchange API using the LPs 
 exchange account and get a list of the orders that have been placed. This is done is 
 such a way that the API secret key is never exposed to the ALP server so it is unable 
 to carry out any other operations with the LPs exchange account.  
-The ALP server looks at each placed order and decides whether they are tier 1 or tier 2
+The ALP server looks at each placed order and decides whether they are rank 1 or rank 2
 orders. Once every minute the ALP server calculates the total amount of liquidity in 
-tier 1 and 2 that has been provided by all connected LPs. It then calculates the 
+rank 1 and 2 that has been provided by all connected LPs. It then calculates the 
 percentage of that total that each LP has provided. That percentage is used to reward 
 the LP from a static pot of funds provided by the Nu network.  
 The total reward each minute is fixed. It is decided by the ALP operators and voted 
 into existence by NuShare holders using the 
 [Custodial Grant](https://nubits.com/about/white-paper#custodial-grants) 
 mechanism of the Nu network. The fixed reward means that LPs who provide a larger 
-percentage of tier 1 liquidity will receive a higher reward but will be exposed to 
+percentage of rank 1 liquidity will receive a higher reward but will be exposed to 
 greater risk.  
 
 ---  

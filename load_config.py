@@ -19,10 +19,10 @@ def load(app, config_file):
                            format(exchange,
                                   unit,
                                   side)] = config[exchange][unit][side]['tolerance']
-                for tier in ['tier_1', 'tier_2']:
+                for rank in ['rank_1', 'rank_2']:
                     app.config['{}.{}.{}.{}.reward'.
                                format(exchange,
                                       unit,
                                       side,
-                                      tier)] = config[exchange][unit][side][tier]['reward']
+                                      rank)] = config[exchange][unit][side][rank]['reward']
 
