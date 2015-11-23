@@ -1,6 +1,8 @@
 bottle
 bottle-sqlite
+gunicorn
 python-bitcoinrpc
+pyzmq
+requests
 wsgi-request-logger
 webtest
-gunicorn
