@@ -31,7 +31,7 @@ def credit(app, rpc, log):
     credit_timer.daemon = True
     credit_timer.start()
 
-    log.info('Start Credit')
+    log.info('Start credit')
 
     # calculate the credit time
     credit_time = int(time.time())
@@ -82,7 +82,7 @@ def credit(app, rpc, log):
         db.execute("UPDATE orders SET credited=? WHERE id=?", (1, order[0]))
     conn.commit()
     conn.close()
-    log.info('End Credit')
+    log.info('End credit')
     stats.stats(app, log)
     return
 
