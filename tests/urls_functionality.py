@@ -38,11 +38,15 @@ assert resp.json == {'success': False, 'message': 'Content-Type header must be '
                                                   'set to \'application/json\''}
 log.debug('test register with no data')
 resp = app.post('/register', headers=headers)
-assert resp.json == {'success': False, 'message': 'no json found in request'}
+assert resp.json == {'success': False, 'message': 'request body must be valid json'}
 
 log.debug('test register with blank data')
 resp = app.post('/register', headers=headers, params={})
-assert resp.json == {'success': False, 'message': 'no json found in request'}
+assert resp.json == {'success': False, 'message': 'request body must be valid json'}
+
+log.debug('test register with invalid json')
+resp = app.post('/register', headers=headers, params='{"user": "abcd123", }')
+assert resp.json == {'success': False, 'message': 'request body must be valid json'}
 
 log.debug('set test data')
 test_data = {'user': 'TEST_USER_1', 'address': 'BMJ2PJ1TNMwnTYUopQVxBrAPmmJjJjhd96',
@@ -121,11 +125,14 @@ assert resp.json == {'success': False, 'message': 'Content-Type header must be '
                                                   'set to \'application/json\''}
 log.debug('test liquidity with no data')
 resp = app.post('/liquidity', headers=headers)
-assert resp.json == {'success': False, 'message': 'no json found in request'}
+assert resp.json == {'success': False, 'message': 'request body must be valid json'}
 
 log.debug('test liquidity with blank data')
 resp = app.post('/liquidity', headers=headers, params={})
-assert resp.json == {'success': False, 'message': 'no json found in request'}
+assert resp.json == {'success': False, 'message': 'request body must be valid json'}
+
+log.debug('test liquidity with invalid json')
+resp = app.post('/liquidity', headers=headers, params='{"user", "as234", }')
 
 log.debug('set test data')
 test_data = {'user': 'TEST_USER_1', 'req': {'test': True}, 'sign': 'this_is_signed',
