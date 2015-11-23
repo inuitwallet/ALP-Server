@@ -25,6 +25,8 @@ var/
 .installed.cfg
 *.egg
 
+ve
+
 .idea/
 logs/
 unix/*_*.conf
@@ -41,6 +43,7 @@ python/nubot/res/frozen-funds/*
 
 pool.db
 test_client.py
+test.py
 *_exchange_config
 
 # PyInstaller
