@@ -144,9 +144,9 @@ def liquidity_info(app, rpc, log,  total):
     """
     for exchange in total['rank_1']:
         for unit in total['rank_1'][exchange]:
-            identifier = "1:{}:{}:{}".format('NBT{}'.format(unit.upper()),
-                                             exchange,
-                                             app.config['pool.name'])
+            identifier = "1.1:{}:{}:{}".format('NBT{}'.format(unit.upper()),
+                                               exchange,
+                                               app.config['pool.name'])
             try:
                 rpc.liquidityinfo('B', total['rank_1'][exchange][unit]['bid'],
                                   total['rank_1'][exchange][unit]['ask'],
@@ -156,9 +156,9 @@ def liquidity_info(app, rpc, log,  total):
 
     for exchange in total['rank_2']:
         for unit in total['rank_2'][exchange]:
-            identifier = "2:{}:{}:{}".format('NBT{}'.format(unit.upper()),
-                                             exchange,
-                                             app.config['pool.name'])
+            identifier = "1.2:{}:{}:{}".format('NBT{}'.format(unit.upper()),
+                                               exchange,
+                                               app.config['pool.name'])
             try:
                 rpc.liquidityinfo('B', total['rank_2'][exchange][unit]['bid'],
                                   total['rank_2'][exchange][unit]['ask'],
