@@ -13,7 +13,7 @@ import credit
 import payout
 import database
 import load_config
-import stats
+from price_fetcher import PriceFetcher
 from utils import AddressCheck
 from exchanges import Bittrex, BTER, CCEDK, Poloniex, TestExchange
 
@@ -58,20 +58,38 @@ wrappers = {'bittrex': Bittrex(),
             'test_exchange': TestExchange(),
             'test_exchange_2': TestExchange()}
 
+# Load the configs
 log.info('load pool config')
 app.config.load_config('pool_config')
 
 log.info('load exchange config')
 load_config.load(app, 'exchange_config')
 
+# Set up a connection with nud
 log.info('set up a json-rpc connection with nud')
 rpc = AuthServiceProxy("http://{}:{}@{}:{}".format(app.config['rpc.user'],
                                                    app.config['rpc.pass'],
                                                    app.config['rpc.host'],
                                                    app.config['rpc.port']))
 
+# set up a price fetcher for each currency
+pf = {}
+for unit in app.config['units']:
+    pf[unit] = PriceFetcher(unit, log)
+    # price streamer doesn't handle usd, we can hard code the price here
+    if unit == 'usd':
+        pf[unit].price = 1.00
+        log.info('usd price set to 1.00')
+        continue
+    # otherwise subscribe to the price feed
+    pf[unit].subscribe()
+
 
 def run_credit_timer():
+    """
+    This method allows the credit timer to be run from test server and from wsgi
+    :return:
+    """
     log.info('running credit timer')
     credit_timer = Timer(60.0, credit.credit,
                          kwargs={'app': app, 'rpc': rpc, 'log': log})
@@ -81,6 +99,10 @@ def run_credit_timer():
 
 
 def run_payout_timer():
+    """
+    This method allows the payout timer to be run from test server and from wsgi
+    :return:
+    """
     log.info('running payout timer')
     payout_timer = Timer(86400.0, payout.pay,
                          kwargs={'rpc': rpc, 'log': log})
@@ -139,9 +161,9 @@ def register(db):
         address = request.json.get('address')
         exchange = request.json.get('exchange')
         unit = request.json.get('unit')
-    except AttributeError:
-        log.warn('no json found in request')
-        return {'success': False, 'message': 'no json found in request'}
+    except (AttributeError, ValueError):
+        log.warn('request body must be valid json')
+        return {'success': False, 'message': 'request body must be valid json'}
     # check for missing parameters
     if not user:
         log.warn('no user provided')
@@ -213,9 +235,9 @@ def liquidity(db):
         exchange = request.json.get('exchange')
         unit = request.json.get('unit')
         req = request.json.get('req')
-    except AttributeError:
-        log.warn('no json found in request')
-        return {'success': False, 'message': 'no json found in request'}
+    except (AttributeError, ValueError):
+        log.warn('request body must be valid json')
+        return {'success': False, 'message': 'request body must be valid json'}
     if not user:
         log.warn('no user provided')
         return {'success': False, 'message': 'no user provided'}
@@ -240,7 +262,11 @@ def liquidity(db):
                                                                                 exchange)}
     # use the submitted data to request the users orders
     orders = wrappers[exchange].validate_request(user, unit, req, sign)
-    price = get_price()
+    price = pf[unit].price
+    if price is None:
+        log.error('unable to fetch current price for %s' % unit)
+        return {'success': False, 'message': 'unable to fetch current price for {}'.
+                format(unit)}
     # clear existing orders for the user
     log.info('clear existing orders for user %s', user)
     db.execute("DELETE FROM orders WHERE user=? AND exchange=? AND unit=?", (user,
@@ -331,6 +357,10 @@ def status(db):
     :return:
     """
     log.info('/status')
+    # get the prices
+    prices = {}
+    for unit in app.config['units']:
+        prices[unit] = pf[unit].price
     # get the latest stats from the database
     stats_data = db.execute("SELECT * FROM stats ORDER BY id DESC LIMIT 1").fetchone()
     if not stats_data:
@@ -339,7 +369,8 @@ def status(db):
     return json.dumps({'status': True, 'message': {'collected': stats_data[1],
                                                    'meta': json.loads(stats_data[2]),
                                                    'totals': json.loads(stats_data[3]),
-                                                   'rewards': json.loads(stats_data[4])}},
+                                                   'rewards': json.loads(stats_data[4]),
+                                                   'prices': prices}},
                       sort_keys=True)
 
 
@@ -408,15 +439,6 @@ def user_credits(db, user):
                            'reward': worth[1]}
             user_stats['history'].append(round_worth)
     return {'success': True, 'message': user_stats}
-
-
-def get_price():
-    """
-    Set the server price primarily from the NuBot streaming server but falling back to
-    feeds if that fails
-    :return:
-    """
-    return 1234
 
 
 @app.error(code=500)
