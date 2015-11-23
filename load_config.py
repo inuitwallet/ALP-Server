@@ -9,10 +9,13 @@ def load(app, config_file):
         fp.close()
 
     app.config['exchanges'] = []
+    app.config['units'] = []
     for exchange in config:
         app.config['exchanges'].append(exchange)
         app.config['{}.units'.format(exchange)] = []
         for unit in config[exchange]:
+            if unit not in app.config['units']:
+                app.config['units'].append(unit)
             app.config['{}.units'.format(exchange)].append(unit)
             for side in config[exchange][unit]:
                 app.config['{}.{}.{}.tolerance'.
