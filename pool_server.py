@@ -6,6 +6,7 @@ from requestlogger import WSGILogger, ApacheFormatter
 from logging.handlers import TimedRotatingFileHandler
 import bottle
 from bottle_sqlite import SQLitePlugin
+import bottle_pgsql
 from bottle import run, request, response
 from bitcoinrpc.authproxy import AuthServiceProxy
 import time
@@ -47,8 +48,12 @@ log.addHandler(stream)
 # Create the database if one doesn't exist
 database.build(log)
 
-# Install the SQLite plugin
-app.install(SQLitePlugin(dbfile='pool.db', keyword='db'))
+# Install the Database plugin based on the environment
+if os.getenv('DATABASE', '') == 'POSTGRES':
+    app.install(bottle_pgsql.Plugin('dbname={} user={} password={}'.format(
+        app.config['db.name'], app.config['db.user'], app.config['db.pass'])))
+else:
+    app.install(SQLitePlugin(dbfile='pool.db', keyword='db'))
 
 # Create the Exchange wrapper objects
 wrappers = {'bittrex': Bittrex(),

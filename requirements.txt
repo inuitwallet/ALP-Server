@@ -1,5 +1,6 @@
 bottle
 bottle-sqlite
+bottle-pgsql
 gunicorn
 python-bitcoinrpc
 pyzmq
