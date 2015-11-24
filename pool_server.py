@@ -90,40 +90,21 @@ for unit in app.config['units']:
     # otherwise subscribe to the price feed
     pf[unit].subscribe()
 
+# Set the timer for credits
+log.info('running credit timer')
+credit_timer = Timer(60.0, credit.credit,
+                     kwargs={'app': app, 'rpc': rpc, 'log': log})
+credit_timer.name = 'credit_timer'
+credit_timer.daemon = True
+credit_timer.start()
 
-def run_credit_timer():
-    """
-    This method allows the credit timer to be run from test server and from wsgi
-    :return:
-    """
-    log.info('running credit timer')
-    credit_timer = Timer(60.0, credit.credit,
-                         kwargs={'app': app, 'rpc': rpc, 'log': log})
-    credit_timer.name = 'credit_timer'
-    credit_timer.daemon = True
-    credit_timer.start()
-
-
-def run_payout_timer():
-    """
-    This method allows the payout timer to be run from test server and from wsgi
-    :return:
-    """
-    log.info('running payout timer')
-    payout_timer = Timer(86400.0, payout.pay,
-                         kwargs={'rpc': rpc, 'log': log})
-    payout_timer.name = 'payout_timer'
-    payout_timer.daemon = True
-    payout_timer.start()
-
-
-if os.getenv('RUN_TIMERS', '0') == '1':
-    # Set the timer for credits
-    run_credit_timer()
-    # Set the timer for payouts
-    run_payout_timer()
-    # get the price fetchers
-    pf = set_price_fetchers()
+# Set the timer for payouts
+log.info('running payout timer')
+payout_timer = Timer(86400.0, payout.pay,
+                     kwargs={'rpc': rpc, 'log': log})
+payout_timer.name = 'payout_timer'
+payout_timer.daemon = True
+payout_timer.start()
 
 
 def check_headers(headers):
