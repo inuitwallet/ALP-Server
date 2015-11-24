@@ -2,6 +2,7 @@ bottle
 bottle-sqlite
 bottle-pgsql
 gunicorn
+psycopg2
 python-bitcoinrpc
 pyzmq
 requests
