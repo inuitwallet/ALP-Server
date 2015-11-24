@@ -77,18 +77,18 @@ rpc = AuthServiceProxy("http://{}:{}@{}:{}".format(app.config['rpc.user'],
                                                    app.config['rpc.host'],
                                                    app.config['rpc.port']))
 
+
 # set up a price fetcher for each currency
-def set_price_fetchers():
-    pf = {}
-    for unit in app.config['units']:
-        pf[unit] = PriceFetcher(unit, log)
-        # price streamer doesn't handle usd, we can hard code the price here
-        if unit == 'usd':
-            pf[unit].price = 1.00
-            log.info('usd price set to 1.00')
-            continue
-        # otherwise subscribe to the price feed
-        pf[unit].subscribe()
+pf = {}
+for unit in app.config['units']:
+    pf[unit] = PriceFetcher(unit, log)
+    # price streamer doesn't handle usd, we can hard code the price here
+    if unit == 'usd':
+        pf[unit].price = 1.00
+        log.info('usd price set to 1.00')
+        continue
+    # otherwise subscribe to the price feed
+    pf[unit].subscribe()
 
 
 def run_credit_timer():
@@ -123,7 +123,7 @@ if os.getenv('RUN_TIMERS', '0') == '1':
     # Set the timer for payouts
     run_payout_timer()
     # get the price fetchers
-    set_price_fetchers()
+    pf = set_price_fetchers()
 
 
 def check_headers(headers):

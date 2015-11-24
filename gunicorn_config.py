@@ -8,6 +8,4 @@ def on_starting(server):
     pool_server.run_credit_timer()
     # Set the timer for payouts
     pool_server.run_payout_timer()
-    # get the price fetchers
-    pool_server.set_price_fetchers()
 
