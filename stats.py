@@ -22,7 +22,7 @@ def stats(app, log):
     # build the blank data object
     meta = {'last-credit-time': last_credit_time, 'number-of-users': 0,
             'number-of-users-active': 0, 'number-of-orders': 0,
-            'next_payout_time': next_payout_time}
+            'next-payout-time': next_payout_time}
     totals = {'all': 0.0, 'bid': 0.0, 'ask': 0.0,
               'rank_1': 0.0, 'bid-rank_1': 0.0, 'ask-rank_1': 0.0,
               'rank_2': 0.0, 'bid-rank_2': 0.0, 'ask-rank_2': 0.0}
