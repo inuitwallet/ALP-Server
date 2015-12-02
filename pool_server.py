@@ -46,7 +46,7 @@ log.addHandler(rotating_file)
 log.addHandler(stream)
 
 # Create the database if one doesn't exist
-database.build(log)
+database.build(app, log)
 
 # Install the Database plugin based on the environment
 if os.getenv('DATABASE', '') == 'POSTGRES':
@@ -69,6 +69,9 @@ app.config.load_config('pool_config')
 
 log.info('load exchange config')
 load_config.load(app, 'exchange_config')
+
+# save the start time of the server for reporting uptime
+app.config['start_time'] = time.time()
 
 # Set up a connection with nud
 log.info('set up a json-rpc connection with nud')
@@ -101,10 +104,18 @@ credit_timer.start()
 # Set the timer for payouts
 log.info('running payout timer')
 payout_timer = Timer(86400.0, payout.pay,
-                     kwargs={'rpc': rpc, 'log': log})
+                     kwargs={'app': app, 'rpc': rpc, 'log': log})
 payout_timer.name = 'payout_timer'
 payout_timer.daemon = True
 payout_timer.start()
+conn = database.get_db(app)
+db = conn.cursor()
+db.execute('UPDATE info SET value=? WHERE key=?', ((time.time() + 86400),
+                                                   'next_payout_time'))
+conn.commit()
+conn.close()
+
+
 
 
 def check_headers(headers):
@@ -250,7 +261,12 @@ def liquidity(db):
         return {'success': False, 'message': '{} is not supported on {}'.format(unit,
                                                                                 exchange)}
     # use the submitted data to request the users orders
-    orders = wrappers[exchange].validate_request(user, unit, req, sign)
+    valid = wrappers[exchange].validate_request(user, unit, req, sign)
+    if not valid['orders']:
+        log.error('%s: %s' % (exchange, valid['message']))
+        return {'success': False, 'message': valid['message']}
+    orders = valid['orders']
+    # get the price from the price feed
     price = pf[unit].price
     if price is None:
         log.error('unable to fetch current price for %s' % unit)
@@ -264,18 +280,22 @@ def liquidity(db):
     # Loop through the orders
     for order in orders:
         # Calculate how the order price is from the known good price
-        order_deviation = 1.0 - (min(order['price'], price) / max(order['price'], price))
+        order_deviation = 1.00 - (min(float(order['price']), float(price)) /
+                                  max(float(order['price']), float(price)))
         # Using the server tolerance determine if the order is rank 1 or rank 2
         # Only rank 1 is compensated by the server
         rank = 'rank_2'
-        if order_deviation <= app.config['{}.{}.{}.tolerance'.format(exchange, unit,
-                                                                     order['type'])]:
+        if float(order_deviation) <= float(app.config['{}.{}.{}.'
+                                                      'tolerance'.format(exchange, unit,
+                                                                         order['side'])]):
             rank = 'rank_1'
         # save the order details
         db.execute("INSERT INTO orders ('user','rank','order_id','order_amount',"
-                   "'side','exchange','unit','credited') VALUES (?,?,?,?,?,?,?,?)",
+                   "'side','order_price','server_price','exchange','unit',"
+                   "'deviation','credited') VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                    (user, rank, str(order['id']), float(order['amount']),
-                    str(order['type']), exchange, unit, 0))
+                    str(order['side']), float(order['price']), float(price), exchange,
+                    unit, float(order_deviation), 0))
     log.info('user %s orders saved for validation', user)
     return {'success': True, 'message': 'orders saved for validation'}
 
@@ -359,7 +379,9 @@ def status(db):
                                                    'meta': json.loads(stats_data[2]),
                                                    'totals': json.loads(stats_data[3]),
                                                    'rewards': json.loads(stats_data[4]),
-                                                   'prices': prices}},
+                                                   'prices': prices},
+                       'server_time': time.time(),
+                       'server_up_time': (time.time() - app.config['start_time'])},
                       sort_keys=True)
 
 
@@ -371,16 +393,20 @@ def user_orders(db, user):
     :return:
     """
     orders = db.execute("SELECT id,order_id,exchange,unit,side,rank,order_amount,"
-                        "credited FROM orders WHERE user=? ORDER BY id DESC LIMIT 100",
+                        "order_price,server_price,deviation,credited FROM orders WHERE "
+                        "user=? ORDER BY id DESC LIMIT 100",
                         (user,)).fetchall()
     # build a list for the order output
     output_orders = []
     # parse the orders
     for order in orders:
         # build the order into a dict
+        # id, order_id, order_amount, side, order_price, server_price,
+        # exchange, unit, deviation, credited
         output_order = {'order_id': order[1], 'exchange': order[2], 'unit': order[3],
                         'side': order[4], 'rank': order[5], 'amount': order[6],
-                        'credited': order[7]}
+                        'price': order[7], 'server_price': order[8],
+                        'deviation': order[9], 'credited': order[10]}
         # get credit detail if the order has been credited
         if order[7] == 1:
             cred = db.execute("SELECT time,total,percentage,reward FROM credits WHERE "
@@ -390,7 +416,7 @@ def user_orders(db, user):
             output_order['percentage'] = round(cred[2], 8)
             output_order['reward'] = round(cred[3], 8)
         output_orders.append(output_order)
-    return {'success': True, 'message': output_orders}
+    return {'success': True, 'message': output_orders, 'server_time': time.time()}
 
 
 @app.get('/<user>/stats')
@@ -410,12 +436,18 @@ def user_credits(db, user):
     """
     # set the user stats to return if nothing is gathered
     user_stats = {'total_reward': 0.0,
+                  'current_reward': 0.0,
                   'history': []}
     # get the total reward
     total = db.execute("SELECT SUM(reward) FROM credits WHERE user=?",
                        (user,)).fetchone()[0]
     if total:
         user_stats['total_reward'] = round(float(total), 8)
+    # get the current reward
+    current = db.execute("SELECT SUM(reward) FROM credits WHERE user=? AND paid=0",
+                         (user,)).fetchone()[0]
+    if current:
+        user_stats['current_reward'] = round(float(current), 8)
     # calculate the last 10 round net worth for this user
     last_rounds = db.execute("SELECT DISTINCT time FROM credits ORDER BY time DESC "
                              "LIMIT 50").fetchall()
@@ -427,7 +459,7 @@ def user_credits(db, user):
                            'provided': worth[0],
                            'reward': worth[1]}
             user_stats['history'].append(round_worth)
-    return {'success': True, 'message': user_stats}
+    return {'success': True, 'message': user_stats, 'server_time': time.time()}
 
 
 @app.error(code=500)
