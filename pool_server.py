@@ -105,14 +105,14 @@ credit_timer.start()
 log.info('running payout timer')
 conn = database.get_db(app)
 db = conn.cursor()
-next_payout_time = db.execute("SELECT value FROM info WHERE key=?",
-                              ('next_payout_time',)).fetchone()[0]
+next_payout_time = int(db.execute("SELECT value FROM info WHERE key=?",
+                                  ('next_payout_time',)).fetchone()[0])
 if next_payout_time == 0:
     payout_time = 86400
     db.execute('UPDATE info SET value=? WHERE key=?', (int(time.time() + payout_time),
                                                        'next_payout_time'))
 else:
-    payout_time = int(next_payout_time - time.time())
+    payout_time = int(next_payout_time - int(time.time()))
 conn.commit()
 conn.close()
 payout_timer = Timer(payout_time, payout.pay,
