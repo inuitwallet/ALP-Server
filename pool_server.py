@@ -381,8 +381,7 @@ def status(db):
     if not stats_data:
         return {'status': False, 'message': 'no statistics exist yet.'}
     response.set_header('Content-Type', 'application/json')
-    return json.dumps({'status': True, 'message': {'collected': stats_data[1],
-                                                   'meta': json.loads(stats_data[2]),
+    return json.dumps({'status': True, 'message': {'meta': json.loads(stats_data[2]),
                                                    'totals': json.loads(stats_data[3]),
                                                    'rewards': json.loads(stats_data[4]),
                                                    'prices': prices},
