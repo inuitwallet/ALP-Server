@@ -18,7 +18,7 @@ def stats(app, log):
     last_credit_time = int(db.execute("SELECT value FROM info WHERE key=?",
                                       ('last_credit_time',)).fetchone()[0])
     next_payout_time = int(db.execute("SELECT value FROM info WHERE key=?",
-                                       ('next_payout_time',)).fetchone()[0])
+                                      ('next_payout_time',)).fetchone()[0])
     # build the blank data object
     meta = {'last-credit-time': last_credit_time, 'number-of-users': 0,
             'number-of-users-active': 0, 'number-of-orders': 0,

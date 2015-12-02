@@ -103,17 +103,23 @@ credit_timer.start()
 
 # Set the timer for payouts
 log.info('running payout timer')
-payout_timer = Timer(86400.0, payout.pay,
+conn = database.get_db(app)
+db = conn.cursor()
+next_payout_time = db.execute("SELECT value FROM info WHERE key=?",
+                              ('next_payout_time',)).fetchone()[0]
+if next_payout_time == 0:
+    payout_time = 86400
+    db.execute('UPDATE info SET value=? WHERE key=?', (int(time.time() + payout_time),
+                                                       'next_payout_time'))
+else:
+    payout_time = int(next_payout_time - time.time())
+conn.commit()
+conn.close()
+payout_timer = Timer(payout_time, payout.pay,
                      kwargs={'app': app, 'rpc': rpc, 'log': log})
 payout_timer.name = 'payout_timer'
 payout_timer.daemon = True
 payout_timer.start()
-conn = database.get_db(app)
-db = conn.cursor()
-db.execute('UPDATE info SET value=? WHERE key=?', ((time.time() + 86400),
-                                                   'next_payout_time'))
-conn.commit()
-conn.close()
 
 
 

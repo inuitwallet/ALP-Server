@@ -22,7 +22,7 @@ def pay(app, rpc, log):
     # get the credit details from the database
     conn = database.get_db(app)
     db = conn.cursor()
-    db.execute('UPDATE info SET value=? WHERE key=?', ((time.time() + 86400),
+    db.execute('UPDATE info SET value=? WHERE key=?', (int(time.time() + 86400),
                                                        'next_payout_time'))
     rewards = db.execute("SELECT c.id,c.user,c.reward,u.address "
                          "FROM credits AS c INNER JOIN users AS u on "
