@@ -9,61 +9,36 @@ import urllib2
 import httplib
 import datetime
 
+import requests
+
 
 class Bittrex(object):
 
     def __init__(self):
-        self.placed = {}
-        self.closed = []
+        pass
 
     def __repr__(self):
         return "bittrex"
 
-    def validate_request(self, key, unit, data, sign):
+    @staticmethod
+    def validate_request(user, unit, req, sign):
         orders = []
-        last_error = ""
-        requests = json.loads(data['requests'])
-        signs = json.loads(data['signs'])
-        if len(requests) != len(signs):
-            return {
-                'error': 'missmatch between requests and signatures (%d vs %d)' % (len(data['requests']), len(signs))}
-        if len(requests) > 2:
-            return {'error': 'too many requests received: %d' % len(requests)}
-        connection = httplib.HTTPSConnection('bittrex.com', timeout=5)
-        for data, sign in zip(requests, signs):
-            uuid = data.split('=')[-1]
-            if not uuid in self.closed:
-                headers = {'apisign': sign}
-                connection.request('GET', data, headers=headers)
-                response = json.loads(connection.getresponse().read())
-                if response['success']:
-                    try:
-                        opened = int(
-                            datetime.datetime.strptime(response['result']['Opened'], '%Y-%m-%dT%H:%M:%S.%f').strftime(
-                                "%s"))
-                    except:
-                        opened = 0
-                    try:
-                        closed = int(
-                            datetime.datetime.strptime(response['result']['Closed'], '%Y-%m-%dT%H:%M:%S.%f').strftime(
-                                "%s"))
-                    except:
-                        closed = sys.maxint
-                    if closed < time.time() - 60:
-                        self.closed.append(uuid)
-                    orders.append({
-                        'id': response['result']['OrderUuid'],
-                        'price': response['result']['Limit'],
-                        'type': 'ask' if 'SELL' in response['result']['Type'] else 'bid',
-                        'amount': response['result']['QuantityRemaining'],
-                        # if not closed == sys.maxint else response['result']['Quantity'],
-                        'opened': opened,
-                        'closed': closed,
-                    })
-                else:
-                    last_error = response['message']
-        if not orders and last_error != "":
-            return {'error': last_error}
+        url = 'https://bittrex.com/api/v1.1/market/getopenorders?' \
+              'apikey={}&nonce={}&market={}'.format(user, req['nonce'], req['market'])
+        r = requests.post(url=url, headers={'apisign': sign})
+        try:
+            data = r.json()
+        except ValueError:
+            return orders
+        if not data['success']:
+            return orders
+        for order in data['result']:
+            if 'LIMIT' not in order['OrderType']:
+                continue
+            orders.append({'id': order['OrderUuid'],
+                           'amount': order['Quantity'],
+                           'price': order['Limit'],
+                           'side': 'bid' if 'BUY' in order['OrderType'] else 'ask'})
         return orders
 
 
@@ -76,19 +51,11 @@ class Poloniex(object):
         return "poloniex"
 
     @staticmethod
-    def validate_request(key, unit, data, sign):
-        headers = {'Sign': sign, 'Key': key}
-        ret = urllib2.urlopen(urllib2.Request('https://poloniex.com/tradingApi',
-                                              urllib.urlencode(data), headers),
-                              timeout=5)
-        response = json.loads(ret.read())
-        if 'error' in response:
-            return response
-        return [{'id': int(order['orderNumber']),
-                 'price': float(order['rate']),
-                 'type': 'ask' if order['type'] == 'sell' else 'bid',
-                 'amount': float(order['amount']),
-                 } for order in response]
+    def validate_request(user, unit, req, sign):
+        url = 'https://poloniex.com/tradingApi'
+        headers = {'Key': user, 'Sign': sign}
+        r = requests.post(url=url, headers=headers, data=req)
+        print r.json()
 
 
 class CCEDK(object):
@@ -153,19 +120,32 @@ class BTER(object):
 
     def validate_request(self, key, unit, data, sign):
         headers = {'Sign': sign, 'Key': key, "Content-type": "application/x-www-form-urlencoded"}
-        response = self.https_request('orderlist', urllib.urlencode(data), headers, timeout=15)
+        r = requests.post('https://data.bter.com/api/1/private/',
+                          data=json.loads(data),
+                          headers=headers)
+        try:
+            response = r.json()
+        except ValueError as e:
+            return {'orders': [], 'message': e.message}
         if 'result' not in response or not response['result']:
-            response['error'] = response['msg'] if 'msg' in response else 'invalid response: %s' % str(response)
-            return response
+            return {'orders': [], 'message': 'invalid response'}
         if not response['orders']:
-            response['orders'] = []
-        return [{
-                    'id': int(order['oid']),
-                    'price': float(order['rate']),
-                    'type': 'ask' if order['buy_type'].lower() == unit.lower() else 'bid',
-                    'amount': float(order['amount']) / (
-                        1.0 if order['buy_type'].lower() == unit.lower() else float(order['rate'])),
-                } for order in response['orders'] if order['pair'] == 'nbt_' + unit.lower()]
+            return {'orders': [], 'message': 'no orders'}
+        valid = {'orders': [], 'message': 'success'}
+        for order in response['orders']:
+            if order['pair'] != 'nbt_' + unit.lower():
+                continue
+            valid['orders'].append({'id': order['oid'],
+                                    'price': float(order['rate']),
+                                    'side': 'ask' if
+                                    order['buy_type'].lower() == unit.lower() else
+                                    'bid',
+                                    'amount': (float(order['amount']) / 1.0) if
+                                    order['buy_type'].lower() == unit.lower() else
+                                    float(order['rate'])})
+        if not valid['orders']:
+            return {'orders': [], 'message': 'no orders for correct pair'}
+        return valid
 
 
 class TestExchange(object):
@@ -180,8 +160,8 @@ class TestExchange(object):
     def validate_request(key, unit, data, sign):
         orders = []
         for x in xrange(10):
-            orders.append({'price': (1234 + random.randint(-5, 5)),
+            orders.append({'price': (1 + (random.randint(-10, 10)/10)),
                            'id': (x + random.randint(0, 250)),
                            'amount': random.randint(0, 250),
-                           'type': 'bid' if int(x) % 2 == 0 else 'ask'})
+                           'side': 'bid' if int(x) % 2 == 0 else 'ask'})
         return orders
