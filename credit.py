@@ -1,6 +1,7 @@
-from threading import Timer, Thread, enumerate
-import sqlite3
+from threading import Timer, Thread
 import time
+
+import database
 from bitcoinrpc.authproxy import JSONRPCException
 import stats
 
@@ -18,7 +19,7 @@ It also uses that data to submit liquidity info back to Nu
 """
 
 
-def credit(app, rpc, log):
+def credit(app, rpc, log, run_stats=True):
     """
     This runs every minute and calculates the total liquidity on order (rank 1) and
     each users proportion of it
@@ -36,7 +37,7 @@ def credit(app, rpc, log):
     # calculate the credit time
     credit_time = int(time.time())
 
-    conn = sqlite3.connect('pool.db')
+    conn = database.get_db(app)
     db = conn.cursor()
     # Get all the orders from the database.
     all_orders = db.execute("SELECT * FROM orders WHERE credited=0").fetchall()
@@ -74,16 +75,17 @@ def credit(app, rpc, log):
         total_liquidity, percentage, reward = calculate_reward(app, order, total)
         # and save to the database
         db.execute("INSERT INTO credits (time,user,exchange,unit,rank,side,order_id,"
-                   "provided,total,percentage,reward,paid) VALUES (?,?,?,?,?,?,?,?,?,?,"
-                   "?,?)", (credit_time, order[1], order[6], order[7], order[2],
-                            order[5], order[0], order[4], total_liquidity,
-                            (percentage * 100), reward, 0))
+                   "provided,total,percentage,reward,paid) VALUES "
+                   "(?,?,?,?,?,?,?,?,?,?,?,?)",
+                   (credit_time, order[1], order[6], order[7], order[2], order[5],
+                    order[0], order[4], total_liquidity, (percentage * 100), reward, 0))
         # update the original order too to indicate that it has been credited
         db.execute("UPDATE orders SET credited=? WHERE id=?", (1, order[0]))
     conn.commit()
     conn.close()
     log.info('End credit')
-    stats.stats(app, log)
+    if run_stats:
+        stats.stats(app, log)
     return
 
 
@@ -110,7 +112,7 @@ def get_total_liquidity(app, orders):
     for order in orders:
         # order schema
         # id, user, rank, order_id, order_amount, side, exchange, unit, credited
-        liquidity[order[2]][order[6]][order[7]][order[5]] += float(order[4])
+        liquidity[order[2]][order[8]][order[9]][order[5]] += float(order[4])
     return liquidity
 
 
@@ -127,12 +129,12 @@ def calculate_reward(app, order, total):
     # amount provided = order_amount
     provided = float(order[4])
     # total liquidity = total[rank][exchange][unit][side]
-    total_liquidity = float(total[order[2]][order[6]][order[7]][order[5]])
+    total_liquidity = float(total[order[2]][order[8]][order[9]][order[5]])
     # Calculate the percentage of the total
     percentage = (provided / total_liquidity) if total_liquidity > 0.00 else 0.00
     # Use the percentage to calculate the reward for this round
     # reward can be found in app.config['exchange.unit.side.rank.reward']
-    reward = percentage * app.config['{}.{}.{}.{}.reward'.format(order[6], order[7],
+    reward = percentage * app.config['{}.{}.{}.{}.reward'.format(order[8], order[9],
                                                                  order[5], order[2])]
     return total_liquidity, percentage, reward
 
