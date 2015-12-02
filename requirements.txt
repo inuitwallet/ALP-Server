@@ -2,7 +2,10 @@ bottle
 bottle-sqlite
 bottle-pgsql
 gunicorn
+ndg-httpsclient
 psycopg2
+pyasn1
+pyopenssl
 python-bitcoinrpc
 pyzmq
 requests
