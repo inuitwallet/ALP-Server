@@ -27,14 +27,14 @@ class TestCredits(unittest.TestCase):
         self.log.addHandler(stream)
         self.log.debug('TestCredits testcase')
         self.log.debug('running setUp')
-        # build the database if it doesn't exist
-        database.build(self.log)
         # set us up a bottle application with correct config
         self.app = bottle.Bottle()
         self.app.config.load_config('../pool_config')
         load_config.load(self.app, 'exchange_config')
+        # build the database if it doesn't exist
+        database.build(self.app, self.log)
         # clear any existing orders in the database
-        conn = sqlite3.connect('pool.db')
+        conn = database.get_db(self.app)
         c = conn.cursor()
         c.execute("DELETE FROM orders")
         c.execute("DELETE FROM credits")
@@ -96,7 +96,7 @@ class TestCredits(unittest.TestCase):
         """
         self.log.debug('running test_get_total_liquidity')
         # get the orders from the database
-        conn = sqlite3.connect('pool.db')
+        conn = database.get_db(self.app)
         c = conn.cursor()
         orders = c.execute("SELECT * FROM orders").fetchall()
 
@@ -137,9 +137,9 @@ class TestCredits(unittest.TestCase):
                 for side in self.test_data[rank][user]:
                     total[rank][side] += self.test_data[rank][user][side]
         # Run the credit on the inserted data
-        credit.credit(self.app, None, self.log)
+        credit.credit(self.app, None, self.log, False)
         # get the credit details from the database
-        conn = sqlite3.connect('pool.db')
+        conn = database.get_db(self.app)
         c = conn.cursor()
         credit_data = c.execute("SELECT * FROM credits").fetchall()
         # self.log.debug(credit_data)
