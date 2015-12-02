@@ -1,30 +1,33 @@
 import json
-from threading import Timer, enumerate
-import sqlite3
+from threading import Timer
+import time
+import database
 from bitcoinrpc.authproxy import JSONRPCException
 
 __author__ = 'sammoth'
 
 
-def pay(rpc, log, start_timer=True):
+def pay(app, rpc, log):
     """
     Pay all users who have a balance > 1 NBT
     :return:
     """
     # reset timer
-    if start_timer:
-        payout_timer = Timer(86400.0, pay,
-                             kwargs={'rpc': rpc, 'log': log})
-        payout_timer.name = 'payout_timer'
-        payout_timer.daemon = True
-        payout_timer.start()
+    payout_timer = Timer(86400.0, pay,
+                         kwargs={'rpc': rpc, 'log': log})
+    payout_timer.name = 'payout_timer'
+    payout_timer.daemon = True
+    payout_timer.start()
     log.info('Payout')
     # get the credit details from the database
-    conn = sqlite3.connect('pool.db')
+    conn = database.get_db(app)
     db = conn.cursor()
+    db.execute('UPDATE info SET value=? WHERE key=?', ((time.time() + 86400),
+                                                       'next_payout_time'))
     rewards = db.execute("SELECT c.id,c.user,c.reward,u.address "
                          "FROM credits AS c INNER JOIN users AS u on "
                          "u.user=c.user WHERE c.rank=1 AND c.paid=0").fetchall()
+    conn.commit()
     conn.close()
     # Calculate the total credit for each unique address
     user_rewards = {}
