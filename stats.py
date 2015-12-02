@@ -1,6 +1,7 @@
 import json
-import sqlite3
 import time
+
+import database
 
 __author__ = 'sammoth'
 
@@ -11,7 +12,7 @@ def stats(app, log):
     :return:
     """
     log.info('Start stats collection')
-    conn = sqlite3.connect('pool.db')
+    conn = database.get_db(app)
     db = conn.cursor()
     # get the last credit time
     last_credit_time = int(db.execute("SELECT value FROM info WHERE key=?",
@@ -49,8 +50,8 @@ def stats(app, log):
                              (last_credit_time,)).fetchall()
     # parse the credit_data
     # credits schema:
-    # id, time, user, exchange, unit, rank, side, order_id, provided, total, percentage,
-    # reward, paid
+    # id, time, user, exchange, unit, rank, side, order_id, order_price,
+    # server_price, provided, total, percentage, reward, paid
     for cred in credit_data:
         # increment the number of orders
         meta['number-of-orders'] += 1
@@ -84,7 +85,9 @@ def stats(app, log):
         # increment exchange/side/rank totals
         totals['{}-{}-{}'.format(cred[3], cred[6], cred[5])] += float(cred[8])
         # increment exchange/unit/side/rank totals
-        totals['{}-{}-{}-{}'.format(cred[3], cred[4], cred[6], cred[5])] += float(cred[8])
+        totals['{}-{}-{}-{}'.format(cred[3],
+                                    cred[4],
+                                    cred[6], cred[5])] += float(cred[8])
     # set the number of active users based on the credits parsed
     meta['number-of-users-active'] = len(active_users)
     # calculate the rewards
