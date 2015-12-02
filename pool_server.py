@@ -380,8 +380,8 @@ def status(db):
                                                    'totals': json.loads(stats_data[3]),
                                                    'rewards': json.loads(stats_data[4]),
                                                    'prices': prices},
-                       'server_time': time.time(),
-                       'server_up_time': (time.time() - app.config['start_time'])},
+                       'server_time': int(time.time()),
+                       'server_up_time': int((time.time() - app.config['start_time']))},
                       sort_keys=True)
 
 
@@ -416,7 +416,7 @@ def user_orders(db, user):
             output_order['percentage'] = round(cred[2], 8)
             output_order['reward'] = round(cred[3], 8)
         output_orders.append(output_order)
-    return {'success': True, 'message': output_orders, 'server_time': time.time()}
+    return {'success': True, 'message': output_orders, 'server_time': int(time.time())}
 
 
 @app.get('/<user>/stats')
@@ -459,7 +459,7 @@ def user_credits(db, user):
                            'provided': worth[0],
                            'reward': worth[1]}
             user_stats['history'].append(round_worth)
-    return {'success': True, 'message': user_stats, 'server_time': time.time()}
+    return {'success': True, 'message': user_stats, 'server_time': int(time.time())}
 
 
 @app.error(code=500)
