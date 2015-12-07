@@ -118,20 +118,36 @@ class BTER(object):
     def __repr__(self):
         return "bter"
 
-    def validate_request(self, key, unit, data, sign):
-        headers = {'Sign': sign, 'Key': key, "Content-type": "application/x-www-form-urlencoded"}
-        r = requests.post('https://data.bter.com/api/1/private/',
+    def validate_request(self, user, unit, data, sign):
+        """
+        Submit Bter get_orders request and return order list
+        :param user: API Public Key
+        :param unit: Currency
+        :param data: Dict of data to send to Bter
+        :param sign: Calculated sign hash
+        :return: order list
+        """
+        # Set the headers for the request
+        headers = {'Sign': sign,
+                   'Key': user,
+                   "Content-type": "application/x-www-form-urlencoded"}
+        # Send the data to the APi
+        r = requests.post('https://bter.com/api/1/private/orderlist',
                           data=json.loads(data),
                           headers=headers)
+        # Catch potential errors
         try:
             response = r.json()
         except ValueError as e:
             return {'orders': [], 'message': e.message}
-        if 'result' not in response or not response['result']:
+        if 'result' not in response:
             return {'orders': [], 'message': 'invalid response'}
+        if not response['result']:
+            return {'orders': [], 'message': response['message']}
         if not response['orders']:
             return {'orders': [], 'message': 'no orders'}
         valid = {'orders': [], 'message': 'success'}
+        # Parse the orders to get the info we want
         for order in response['orders']:
             if order['pair'] != 'nbt_' + unit.lower():
                 continue
