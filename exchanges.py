@@ -6,9 +6,6 @@ import json
 import time
 import urllib
 import urllib2
-import httplib
-import datetime
-
 import requests
 
 
@@ -22,24 +19,35 @@ class Bittrex(object):
 
     @staticmethod
     def validate_request(user, unit, req, sign):
-        orders = []
+        """
+        validate the orders request for Bittrex
+        :param user: API key
+        :param unit: Currency code
+        :param req: dict of data tpo send to exchange api
+        :param sign: calculated sign of params
+        :return: valid dict containing orders list or message of failure
+        """
         url = 'https://bittrex.com/api/v1.1/market/getopenorders?' \
               'apikey={}&nonce={}&market={}'.format(user, req['nonce'], req['market'])
         r = requests.post(url=url, headers={'apisign': sign})
         try:
             data = r.json()
-        except ValueError:
-            return orders
+        except ValueError as e:
+            return {'orders': [], 'message': '{}: {}'.format(e.message, r.text)}
         if not data['success']:
-            return orders
+            return {'orders': [], 'message': 'invalid response'}
+        valid = {'orders': [], 'message': 'success'}
         for order in data['result']:
             if 'LIMIT' not in order['OrderType']:
                 continue
-            orders.append({'id': order['OrderUuid'],
-                           'amount': order['Quantity'],
-                           'price': order['Limit'],
-                           'side': 'bid' if 'BUY' in order['OrderType'] else 'ask'})
-        return orders
+            valid['orders'].append({'id': order['OrderUuid'],
+                                    'amount': order['Quantity'],
+                                    'price': order['Limit'],
+                                    'side': 'bid' if 'BUY' in order['OrderType'] else
+                                    'ask'})
+        if not valid['orders']:
+            return {'orders': [], 'message': 'no orders found'}
+        return valid
 
 
 class Poloniex(object):
@@ -54,8 +62,22 @@ class Poloniex(object):
     def validate_request(user, unit, req, sign):
         url = 'https://poloniex.com/tradingApi'
         headers = {'Key': user, 'Sign': sign}
-        r = requests.post(url=url, headers=headers, data=req)
-        print r.json()
+        r = requests.post(url=url, headers=headers, data=json.loads(req))
+        try:
+            data = r.json()
+        except ValueError as e:
+            return {'orders': [], 'message': '{}: {}'.format(e.message, r.text)}
+        if 'error' in data:
+            return {'orders': [], 'message': data['error']}
+        valid = {'orders': [], 'message': 'success'}
+        for order in data:
+            valid.orders.append({'id': order['orderNumber'],
+                                 'side': 'ask' if order['type'] == 'sell' else 'bid',
+                                 'price': float(order['rate']),
+                                 'amount': float(order['amount'])})
+        if not valid['orders']:
+            return {'orders': [], 'message': 'no orders found'}
+        return valid
 
 
 class CCEDK(object):
@@ -118,12 +140,12 @@ class BTER(object):
     def __repr__(self):
         return "bter"
 
-    def validate_request(self, user, unit, data, sign):
+    def validate_request(self, user, unit, req, sign):
         """
         Submit Bter get_orders request and return order list
         :param user: API Public Key
         :param unit: Currency
-        :param data: Dict of data to send to Bter
+        :param req: Dict of data to send to Bter
         :param sign: Calculated sign hash
         :return: order list
         """
@@ -133,22 +155,22 @@ class BTER(object):
                    "Content-type": "application/x-www-form-urlencoded"}
         # Send the data to the APi
         r = requests.post('https://bter.com/api/1/private/orderlist',
-                          data=json.loads(data),
+                          data=json.loads(req),
                           headers=headers)
         # Catch potential errors
         try:
-            response = r.json()
+            data = r.json()
         except ValueError as e:
-            return {'orders': [], 'message': e.message}
-        if 'result' not in response:
+            return {'orders': [], 'message': '{}: {}'.format(e.message, r.text)}
+        if 'result' not in data:
             return {'orders': [], 'message': 'invalid response'}
-        if not response['result']:
-            return {'orders': [], 'message': response['message']}
-        if not response['orders']:
+        if not data['result']:
+            return {'orders': [], 'message': data['message']}
+        if not data['orders']:
             return {'orders': [], 'message': 'no orders'}
         valid = {'orders': [], 'message': 'success'}
         # Parse the orders to get the info we want
-        for order in response['orders']:
+        for order in data['orders']:
             if order['pair'] != 'nbt_' + unit.lower():
                 continue
             valid['orders'].append({'id': order['oid'],
@@ -160,7 +182,7 @@ class BTER(object):
                                     order['buy_type'].lower() == unit.lower() else
                                     float(order['rate'])})
         if not valid['orders']:
-            return {'orders': [], 'message': 'no orders for correct pair'}
+            return {'orders': [], 'message': 'no orders found'}
         return valid
 
 
@@ -180,4 +202,4 @@ class TestExchange(object):
                            'id': (x + random.randint(0, 250)),
                            'amount': random.randint(0, 250),
                            'side': 'bid' if int(x) % 2 == 0 else 'ask'})
-        return orders
+        return {'orders': orders, 'message': 'success'}
