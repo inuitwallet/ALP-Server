@@ -1,6 +1,7 @@
 bottle
 bottle-sqlite
 bottle-pgsql
+cffi
 gunicorn
 ndg-httpsclient
 psycopg2
