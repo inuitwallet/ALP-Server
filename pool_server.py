@@ -122,8 +122,6 @@ payout_timer.daemon = True
 payout_timer.start()
 
 
-
-
 def check_headers(headers):
     """
     Ensure the correct headers get passed in the request
@@ -268,7 +266,7 @@ def liquidity(db):
                                                                                 exchange)}
     # use the submitted data to request the users orders
     valid = wrappers[exchange].validate_request(user, unit, req, sign)
-    if not valid['orders']:
+    if valid['message'] != 'success':
         log.error('%s: %s' % (exchange, valid['message']))
         return {'success': False, 'message': valid['message']}
     orders = valid['orders']
