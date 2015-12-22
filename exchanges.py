@@ -90,7 +90,7 @@ class CCEDK(object):
             r = requests.get(url)
             try:
                 data = r.json()
-            except ValueError as e:
+            except ValueError:
                 time.sleep(0.5)
                 continue
             if 'response' not in data:
@@ -240,6 +240,7 @@ class TestExchange(object):
 
     @staticmethod
     def validate_request(**kwargs):
+        user = kwargs.get('user')
         orders = []
         for x in xrange(10):
             orders.append({'price': (1 + (random.randint(-10, 10)/10)),
