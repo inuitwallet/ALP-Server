@@ -267,13 +267,13 @@ def liquidity(db):
     # use the submitted data to request the users orders
     valid = wrappers[exchange].validate_request(user=user, unit=unit, req=req, sign=sign)
     if valid['message'] != 'success':
-        log.error('%s: %s' % exchange, valid['message'])
+        log.error('%s: %s', exchange, valid['message'])
         return {'success': False, 'message': valid['message']}
     orders = valid['orders']
     # get the price from the price feed
     price = pf[unit].price
     if price is None:
-        log.error('unable to fetch current price for %s' % unit)
+        log.error('unable to fetch current price for %s', unit)
         return {'success': False, 'message': 'unable to fetch current price for {}'.
                 format(unit)}
     # clear existing orders for the user
