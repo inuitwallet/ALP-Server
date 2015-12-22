@@ -13,15 +13,15 @@ class Bittrex(object):
         return "bittrex"
 
     @staticmethod
-    def validate_request(user, unit, req, sign):
+    def validate_request(**kwargs):
         """
         validate the orders request for Bittrex
-        :param user: API key
-        :param unit: Currency code
-        :param req: dict of data tpo send to exchange api
-        :param sign: calculated sign of params
+        :param kwargs dict of arguments. should contain user, req and sign
         :return: valid dict containing orders list or message of failure
         """
+        user = kwargs.get('user')
+        req = kwargs.get('req')
+        sign = kwargs.get('sign')
         url = 'https://bittrex.com/api/v1.1/market/getopenorders?' \
               'apikey={}&nonce={}&market={}'.format(user, req['nonce'], req['market'])
         r = requests.post(url=url,
@@ -55,7 +55,10 @@ class Poloniex(object):
         return "poloniex"
 
     @staticmethod
-    def validate_request(user, unit, req, sign):
+    def validate_request(**kwargs):
+        user = kwargs.get('user')
+        req = kwargs.get('req')
+        sign = kwargs.get('sign')
         url = 'https://poloniex.com/tradingApi'
         headers = {'Key': user, 'Sign': sign}
         r = requests.post(url=url,
@@ -103,7 +106,11 @@ class CCEDK(object):
     def __repr__(self):
         return "ccedk"
 
-    def validate_request(self, user, unit, req, sign):
+    def validate_request(self, **kwargs):
+        user = kwargs.get('user')
+        req = kwargs.get('req')
+        sign = kwargs.get('sign')
+        unit = kwargs.get('unit')
         headers = {"Content-type": "application/x-www-form-urlencoded",
                    "Key": user,
                    "Sign": sign}
@@ -145,15 +152,16 @@ class BTER(object):
         return "bter"
 
     @staticmethod
-    def validate_request(user, unit, req, sign):
+    def validate_request(**kwargs):
         """
         Submit Bter get_orders request and return order list
-        :param user: API Public Key
-        :param unit: Currency
-        :param req: Dict of data to send to Bter
-        :param sign: Calculated sign hash
+        :param kwargs dict of params.
         :return: order list
         """
+        user = kwargs.get('user')
+        req = kwargs.get('req')
+        sign = kwargs.get('sign')
+        unit = kwargs.get('unit')
         # Set the headers for the request
         headers = {'Sign': sign,
                    'Key': user,
@@ -200,7 +208,10 @@ class Cryptsy(object):
         return 'cryptsy'
 
     @staticmethod
-    def validate_request(user, unit, req, sign):
+    def validate_request(**kwargs):
+        user = kwargs.get('user')
+        req = kwargs.get('req')
+        sign = kwargs.get('sign')
         headers = {'Sign': sign,
                    'Key': user}
         url = 'https://api.cryptsy.com/api'
@@ -228,7 +239,7 @@ class TestExchange(object):
         return 'test_exchange'
 
     @staticmethod
-    def validate_request(key, unit, data, sign):
+    def validate_request(**kwargs):
         orders = []
         for x in xrange(10):
             orders.append({'price': (1 + (random.randint(-10, 10)/10)),

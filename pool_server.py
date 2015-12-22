@@ -265,7 +265,7 @@ def liquidity(db):
         return {'success': False, 'message': '{} is not supported on {}'.format(unit,
                                                                                 exchange)}
     # use the submitted data to request the users orders
-    valid = wrappers[exchange].validate_request(user, unit, req, sign)
+    valid = wrappers[exchange].validate_request(user=user, unit=unit, req=req, sign=sign)
     if valid['message'] != 'success':
         log.error('%s: %s' % (exchange, valid['message']))
         return {'success': False, 'message': valid['message']}
