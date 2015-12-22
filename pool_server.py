@@ -467,29 +467,30 @@ def user_credits(db, user):
 
 @app.error(code=500)
 def error500(error):
-    return json.dumps({'success': False, 'message': '500 error'})
+    return json.dumps({'success': False, 'message': '500 error: {}'.format(error)})
 
 
 @app.error(code=502)
 def error502(error):
-    return json.dumps({'success': False, 'message': '502 error'})
+    return json.dumps({'success': False, 'message': '502 error: {}'.format(error)})
 
 
 @app.error(code=503)
 def error503(error):
-    return json.dumps({'success': False, 'message': '503 error'})
+    return json.dumps({'success': False, 'message': '503 error: {}'.format(error)})
 
 
 @app.error(code=404)
 def error404(error):
-    return json.dumps({'success': False, 'message': '404 {} not found'
-                                                    ''.format(request.url)})
+    return json.dumps({'success': False, 'message': '404 {} not found: {}'
+                                                    ''.format(request.url, error)})
 
 
 @app.error(code=405)
 def error405(error):
     return json.dumps({'success': False, 'message': '405 error. '
-                                                    'Incorrect HTTP method used'})
+                                                    'Incorrect HTTP method used: '
+                                                    '{}'.format(error)})
 
 
 if __name__ == '__main__':
