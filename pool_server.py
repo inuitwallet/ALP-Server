@@ -55,6 +55,13 @@ if os.getenv('DATABASE', '') == 'POSTGRES':
 else:
     app.install(SQLitePlugin(dbfile='pool.db', keyword='db'))
 
+# Load the configs
+log.info('load pool config')
+app.config.load_config('pool_config')
+
+log.info('load exchange config')
+load_config.load(app, 'exchange_config')
+
 # Create the Exchange wrapper objects
 wrappers = {'bittrex': Bittrex(),
             'bter': BTER(),
@@ -62,13 +69,6 @@ wrappers = {'bittrex': Bittrex(),
             'poloniex': Poloniex(),
             'test_exchange': TestExchange(),
             'test_exchange_2': TestExchange()}
-
-# Load the configs
-log.info('load pool config')
-app.config.load_config('pool_config')
-
-log.info('load exchange config')
-load_config.load(app, 'exchange_config')
 
 # save the start time of the server for reporting uptime
 app.config['start_time'] = time.time()
