@@ -1,9 +1,6 @@
 #! /usr/bin/env python
 import random
-import json
-
 import time
-
 import requests
 
 
@@ -27,7 +24,8 @@ class Bittrex(object):
         """
         url = 'https://bittrex.com/api/v1.1/market/getopenorders?' \
               'apikey={}&nonce={}&market={}'.format(user, req['nonce'], req['market'])
-        r = requests.post(url=url, headers={'apisign': sign})
+        r = requests.post(url=url,
+                          headers={'apisign': sign})
         try:
             data = r.json()
         except ValueError as e:
@@ -60,7 +58,9 @@ class Poloniex(object):
     def validate_request(user, unit, req, sign):
         url = 'https://poloniex.com/tradingApi'
         headers = {'Key': user, 'Sign': sign}
-        r = requests.post(url=url, headers=headers, data=json.loads(req))
+        r = requests.post(url=url,
+                          headers=headers,
+                          data=req)
         try:
             data = r.json()
         except ValueError as e:
@@ -69,10 +69,10 @@ class Poloniex(object):
             return {'orders': [], 'message': data['error']}
         valid = {'orders': [], 'message': 'success'}
         for order in data:
-            valid.orders.append({'id': order['orderNumber'],
-                                 'side': 'ask' if order['type'] == 'sell' else 'bid',
-                                 'price': float(order['rate']),
-                                 'amount': float(order['amount'])})
+            valid['orders'].append({'id': order['orderNumber'],
+                                    'side': 'ask' if order['type'] == 'sell' else 'bid',
+                                    'price': float(order['rate']),
+                                    'amount': float(order['amount'])})
         if not valid['orders']:
             return {'orders': [], 'message': 'no orders found'}
         return valid
@@ -108,7 +108,9 @@ class CCEDK(object):
                    "Key": user,
                    "Sign": sign}
         url = 'https://www.ccedk.com/api/v1/order/list'
-        r = requests.post(url=url, data=json.loads(req), headers=headers)
+        r = requests.post(url=url,
+                          data=req,
+                          headers=headers)
         try:
             data = r.json()
         except ValueError as e:
@@ -143,7 +145,7 @@ class BTER(object):
         return "bter"
 
     @staticmethod
-    def validate_request(self, user, unit, req, sign):
+    def validate_request(user, unit, req, sign):
         """
         Submit Bter get_orders request and return order list
         :param user: API Public Key
@@ -158,7 +160,7 @@ class BTER(object):
                    "Content-type": "application/x-www-form-urlencoded"}
         # Send the data to the APi
         r = requests.post('https://bter.com/api/1/private/orderlist',
-                          data=json.loads(req),
+                          data=req,
                           headers=headers)
         # Catch potential errors
         try:
@@ -202,19 +204,19 @@ class Cryptsy(object):
         headers = {'Sign': sign,
                    'Key': user}
         url = 'https://api.cryptsy.com/api'
-        r = requests.post(url=url, data=json.loads(req), headers=headers)
+        r = requests.post(url=url, data=req, headers=headers)
         try:
             data = r.json()
         except ValueError as e:
             return {'orders': [], 'message': '{}: {}'.format(e.message, r.text)}
         if 'success' not in data:
             return {'orders': [], 'message': 'invalid response'}
-        if int(response['success']) == 0:
-            return response
+        if int(data['success']) == 0:
+            return data
         return [{'id': int(order['orderid']),
                  'price': float(order['price']),
                  'type': 'ask' if order['ordertype'] == 'Sell' else 'bid',
-                 'amount': float(order['quantity'])} for order in response['return']]
+                 'amount': float(order['quantity'])} for order in data['return']]
 
 
 class TestExchange(object):
