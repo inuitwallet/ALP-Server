@@ -240,7 +240,6 @@ class TestExchange(object):
 
     @staticmethod
     def validate_request(**kwargs):
-        user = kwargs.get('user')
         orders = []
         for x in xrange(10):
             orders.append({'price': (1 + (random.randint(-10, 10)/10)),
