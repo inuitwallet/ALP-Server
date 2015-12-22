@@ -32,7 +32,7 @@ def credit(app, rpc, log, run_stats=True):
     credit_timer.daemon = True
     credit_timer.start()
 
-    log.info('Start credit')
+    log_output = False
 
     # calculate the credit time
     credit_time = int(time.time())
@@ -41,6 +41,9 @@ def credit(app, rpc, log, run_stats=True):
     db = conn.cursor()
     # Get all the orders from the database.
     all_orders = db.execute("SELECT * FROM orders WHERE credited=0").fetchall()
+    if len(all_orders) > 0:
+        log_output = True
+        log.info('Start credit')
     # store the credit time in the info table
     db.execute("UPDATE info SET value=? WHERE key=?", (credit_time, 'last_credit_time'))
 
@@ -83,9 +86,10 @@ def credit(app, rpc, log, run_stats=True):
         db.execute("UPDATE orders SET credited=? WHERE id=?", (1, order[0]))
     conn.commit()
     conn.close()
-    log.info('End credit')
+    if log_output:
+        log.info('End credit')
     if run_stats:
-        stats.stats(app, log)
+        stats.stats(app, log, log_output)
     return
 
 

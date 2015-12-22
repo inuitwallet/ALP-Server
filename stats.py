@@ -6,12 +6,13 @@ import database
 __author__ = 'sammoth'
 
 
-def stats(app, log):
+def stats(app, log, log_output):
     """
     This method runs once every 65 seconds and stores the pool statistics to the database
     :return:
     """
-    log.info('Start stats collection')
+    if log_output:
+        log.info('Start stats collection')
     conn = database.get_db(app)
     db = conn.cursor()
     # get the last credit time
@@ -108,7 +109,8 @@ def stats(app, log):
                 json.dumps(totals), json.dumps(rewards)))
     conn.commit()
     conn.close()
-    log.info('End stats collection')
+    if log_output:
+        log.info('End stats collection')
 
 
 def calculate_reward(reward, total):
