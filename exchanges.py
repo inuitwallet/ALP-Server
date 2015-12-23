@@ -1,4 +1,5 @@
 #! /usr/bin/env python
+import json
 import random
 import time
 import requests
@@ -178,7 +179,11 @@ class BTER(object):
         if 'result' not in data:
             return {'orders': [], 'message': 'invalid response'}
         if not data['result']:
-            return {'orders': [], 'message': data['message']}
+            try:
+                message = json.dumps(data['message'])
+            except ValueError:
+                message = data['message']
+            return {'orders': [], 'message': message}
         if not data['orders']:
             return {'orders': [], 'message': 'no orders'}
         valid = {'orders': [], 'message': 'success'}
