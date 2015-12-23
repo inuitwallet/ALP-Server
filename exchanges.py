@@ -30,10 +30,11 @@ class Bittrex(object):
         try:
             data = r.json()
         except ValueError as e:
-            return {'orders': [], 'message': '{}: {}'.format(e.message, r.text)}
+            return {'orders': [], 'message': '{}: {}'.format(e.message, r.text),
+                    'success': False}
         if not data['success']:
-            return {'orders': [], 'message': 'invalid response'}
-        valid = {'orders': [], 'message': 'success'}
+            return {'orders': [], 'message': 'invalid response', 'success': False}
+        valid = {'orders': [], 'message': 'success', 'success': True}
         for order in data['result']:
             if 'LIMIT' not in order['OrderType']:
                 continue
@@ -43,7 +44,7 @@ class Bittrex(object):
                                     'side': 'bid' if 'BUY' in order['OrderType'] else
                                     'ask'})
         if not valid['orders']:
-            return {'orders': [], 'message': 'no orders found'}
+            return {'orders': [], 'message': 'no orders found', 'success': True}
         return valid
 
 
@@ -68,21 +69,22 @@ class Poloniex(object):
         try:
             data = r.json()
         except ValueError as e:
-            return {'orders': [], 'message': '{}: {}'.format(e.message, r.text)}
+            return {'orders': [], 'message': '{}: {}'.format(e.message, r.text),
+                    'success': False}
         if 'error' in data:
             try:
                 message = json.dumps(data['error'])
             except ValueError:
                 message = data['error']
-            return {'orders': [], 'message': message}
-        valid = {'orders': [], 'message': 'success'}
+            return {'orders': [], 'message': message, 'success': False}
+        valid = {'orders': [], 'message': 'success', 'success': True}
         for order in data:
             valid['orders'].append({'id': order['orderNumber'],
                                     'side': 'ask' if order['type'] == 'sell' else 'bid',
                                     'price': float(order['rate']),
                                     'amount': float(order['amount'])})
         if not valid['orders']:
-            return {'orders': [], 'message': 'no orders found'}
+            return {'orders': [], 'message': 'no orders found', 'success': True}
         return valid
 
 
@@ -126,20 +128,21 @@ class CCEDK(object):
         try:
             data = r.json()
         except ValueError as e:
-            return {'orders': [], 'message': '{}: {}'.format(e.message, r.text)}
+            return {'orders': [], 'message': '{}: {}'.format(e.message, r.text),
+                    'success': False}
         if data['errors']:
             try:
                 message = json.dumps(data['errors'])
             except ValueError:
                 message = data['errors']
-            return {'orders': [], 'message': message}
+            return {'orders': [], 'message': message, 'success': False}
         if 'response' not in data:
-            return {'orders': [], 'message': 'invalid response'}
+            return {'orders': [], 'message': 'invalid response', 'success': False}
         if 'entities' not in data['response']:
-            return {'orders': [], 'message': 'invalid response'}
+            return {'orders': [], 'message': 'invalid response', 'success': False}
         if not data['response']['entities']:
-            return {'orders': [], 'message': 'no orders found'}
-        valid = {'order': [], 'message': 'success'}
+            return {'orders': [], 'message': 'no orders found', 'success': True}
+        valid = {'order': [], 'message': 'success', 'success': True}
         for order in data['response']['entities']:
             if order['pair_id'] != self.pair_id[unit.lower()]:
                 continue
@@ -148,7 +151,7 @@ class CCEDK(object):
                                     'side': 'ask' if order['type'] == 'sell' else 'bid',
                                     'amount': float(order['volume'])})
         if not valid['orders']:
-            return {'orders': [], 'message': 'no orders found'}
+            return {'orders': [], 'message': 'no orders found', 'success': True}
         return valid
 
 
@@ -183,18 +186,19 @@ class BTER(object):
         try:
             data = r.json()
         except ValueError as e:
-            return {'orders': [], 'message': '{}: {}'.format(e.message, r.text)}
+            return {'orders': [], 'message': '{}: {}'.format(e.message, r.text),
+                    'success': False}
         if 'result' not in data:
-            return {'orders': [], 'message': 'invalid response'}
+            return {'orders': [], 'message': 'invalid response', 'success': False}
         if not data['result']:
             try:
                 message = json.dumps(data['message'])
             except ValueError:
                 message = data['message']
-            return {'orders': [], 'message': message}
+            return {'orders': [], 'message': message, 'success': False}
         if not data['orders']:
-            return {'orders': [], 'message': 'no orders'}
-        valid = {'orders': [], 'message': 'success'}
+            return {'orders': [], 'message': 'no orders', 'success': True}
+        valid = {'orders': [], 'message': 'success', 'success': True}
         # Parse the orders to get the info we want
         for order in data['orders']:
             if order['pair'] != 'nbt_' + unit.lower():
@@ -208,7 +212,7 @@ class BTER(object):
                                     order['buy_type'].lower() == unit.lower() else
                                     float(order['rate'])})
         if not valid['orders']:
-            return {'orders': [], 'message': 'no orders found'}
+            return {'orders': [], 'message': 'no orders found', 'success': True}
         return valid
 
 
@@ -232,15 +236,26 @@ class Cryptsy(object):
         try:
             data = r.json()
         except ValueError as e:
-            return {'orders': [], 'message': '{}: {}'.format(e.message, r.text)}
+            return {'orders': [], 'message': '{}: {}'.format(e.message, r.text),
+                    'success': False}
         if 'success' not in data:
-            return {'orders': [], 'message': 'invalid response'}
+            return {'orders': [], 'message': 'invalid response', 'success': False}
         if int(data['success']) == 0:
-            return data
-        return [{'id': int(order['orderid']),
-                 'price': float(order['price']),
-                 'type': 'ask' if order['ordertype'] == 'Sell' else 'bid',
-                 'amount': float(order['quantity'])} for order in data['return']]
+            try:
+                message = json.dumps(data)
+            except ValueError:
+                message = data
+            return {'orders': [], 'message': message, 'success': False}
+        valid = {'orders': [], 'message': 'success'}
+        for order in data['return']:
+            valid['orders'].append({'id': int(order['orderid']),
+                                    'price': float(order['price']),
+                                    'type': 'ask' if order['ordertype'] == 'Sell' else
+                                    'bid',
+                                    'amount': float(order['quantity'])})
+        if not valid['orders']:
+            return {'orders': [], 'message': 'no orders found', 'success': True}
+        return valid
 
 
 class TestExchange(object):
