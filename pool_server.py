@@ -264,6 +264,11 @@ def liquidity(db):
         log.warn('invalid unit')
         return {'success': False, 'message': '{} is not supported on {}'.format(unit,
                                                                                 exchange)}
+    # check that the user is registered
+    user = db.execute("SELECT id FROM users WHERE user=?", (user,)).fetchone()
+    if user is None:
+        log.error('user %s is not registered', user)
+        return {'success': False, 'message': 'user {} is not registered'.format(user)}
     # use the submitted data to request the users orders
     valid = wrappers[exchange].validate_request(user=user, unit=unit, req=req, sign=sign)
     if valid['message'] != 'success':
