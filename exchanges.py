@@ -70,7 +70,11 @@ class Poloniex(object):
         except ValueError as e:
             return {'orders': [], 'message': '{}: {}'.format(e.message, r.text)}
         if 'error' in data:
-            return {'orders': [], 'message': data['error']}
+            try:
+                message = json.dumps(data['error'])
+            except ValueError:
+                message = data['error']
+            return {'orders': [], 'message': message}
         valid = {'orders': [], 'message': 'success'}
         for order in data:
             valid['orders'].append({'id': order['orderNumber'],
@@ -124,7 +128,11 @@ class CCEDK(object):
         except ValueError as e:
             return {'orders': [], 'message': '{}: {}'.format(e.message, r.text)}
         if data['errors']:
-            return {'orders': [], 'message': data['errors']}
+            try:
+                message = json.dumps(data['errors'])
+            except ValueError:
+                message = data['errors']
+            return {'orders': [], 'message': message}
         if 'response' not in data:
             return {'orders': [], 'message': 'invalid response'}
         if 'entities' not in data['response']:
