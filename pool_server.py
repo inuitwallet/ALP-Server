@@ -268,7 +268,7 @@ def liquidity(db):
     valid = wrappers[exchange].validate_request(user=user, unit=unit, req=req, sign=sign)
     if valid['message'] != 'success':
         log.error('%s: %s', exchange, valid['message'])
-        return {'success': False, 'message': valid['message']}
+        return {'success': True, 'message': valid['message']}
     orders = valid['orders']
     # get the price from the price feed
     price = pf[unit].price
