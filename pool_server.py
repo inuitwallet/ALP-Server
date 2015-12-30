@@ -393,7 +393,7 @@ def status(db):
     prices = {}
     for unit in app.config['units']:
         prices[unit] = pf[unit].price
-    # get the latest stats from the database
+    # get the latest stats from the database using jsonb
     db.execute("SELECT * FROM stats ORDER BY id DESC LIMIT 1")
     stats_data = db.fetchone()
     if not stats_data:
