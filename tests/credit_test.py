@@ -1,12 +1,13 @@
 import logging
 import random
-import unittest
-import bottle
 import sys
+import unittest
+
+import bottle
+
 sys.path.append('../')
-import credit
-import database
-import load_config
+from src import credit, database, load_config
+from config import load_config
 
 
 class TestCredits(unittest.TestCase):

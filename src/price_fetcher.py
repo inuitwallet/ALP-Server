@@ -240,10 +240,16 @@ class PriceFetcher(object):
         price_socket.setsockopt(zmq.RCVTIMEO, 2000)
         # send the token and our session id
         price_socket.send('{} {} start'.format(self.currency_token, self.session_id))
-        response = price_socket.recv_json()
+        try:
+            response = price_socket.recv_json()
+        except ValueError as e:
+            self.log.error('unable to start price streamer: %s', e.message)
+            price_socket.close()
+            return
         # if we got a different response to the one we were expecting
         if 'args' not in response:
             price_socket.close()
+            return
         # otherwise set the price
         self.price = float(response['args'][1])
         self.log.info('{} price set to {}'.format(self.unit, self.price))

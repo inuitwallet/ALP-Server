@@ -1,7 +1,7 @@
 import json
 import time
 
-import database
+from src import database
 
 __author__ = 'sammoth'
 

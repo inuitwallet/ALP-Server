@@ -1,9 +1,9 @@
-from threading import Timer, Thread
 import time
+from threading import Timer, Thread
 
 import database
-from bitcoinrpc.authproxy import JSONRPCException
 import stats
+from bitcoinrpc.authproxy import JSONRPCException
 
 __author__ = 'sammoth'
 
@@ -81,7 +81,7 @@ def credit(app, rpc, log, run_stats=True):
         db.execute("INSERT INTO credits (time,key,exchange,unit,rank,side,order_id,"
                    "provided,total,percentage,reward,paid) VALUES "
                    "(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
-                   (credit_time, order[1], order[6], order[7], order[2], order[5],
+                   (credit_time, order[1], order[8], order[9], order[2], order[5],
                     order[0], order[4], total_liquidity, (percentage * 100), reward, 0))
         # update the original order too to indicate that it has been credited
         db.execute("UPDATE orders SET credited=%s WHERE id=%s", (1, order[0]))

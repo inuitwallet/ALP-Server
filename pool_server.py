@@ -1,24 +1,20 @@
 import json
 import logging
-import urlparse
-
-import os
-from threading import Timer
-from requestlogger import WSGILogger, ApacheFormatter
-from logging.handlers import TimedRotatingFileHandler
-import bottle
-from bottle_sqlite import SQLitePlugin
-import bottle_pgsql
-from bottle import run, request, response
-from bitcoinrpc.authproxy import AuthServiceProxy
 import time
-import credit
-import payout
-import database
-import load_config
-from price_fetcher import PriceFetcher
-from utils import AddressCheck
-from exchanges import Bittrex, BTER, CCEDK, Poloniex, TestExchange
+import urlparse
+from logging.handlers import TimedRotatingFileHandler
+from threading import Timer
+
+import bottle
+import bottle_pgsql
+import os
+from bitcoinrpc.authproxy import AuthServiceProxy
+from bottle import run, request, response, static_file
+from requestlogger import WSGILogger, ApacheFormatter
+from src import credit, database, payout, load_config
+from src.exchanges import Bittrex, BTER, CCEDK, Poloniex, TestExchange
+from src.price_fetcher import PriceFetcher
+from src.utils import AddressCheck
 
 __author__ = 'sammoth'
 
@@ -49,10 +45,10 @@ log.addHandler(stream)
 
 # Load the configs
 log.info('load pool config')
-app.config.load_config('pool_config')
+app.config.load_config('config/pool_config')
 
 log.info('load exchange config')
-load_config.load(app, 'exchange_config')
+load_config.load(app, 'config/exchange_config')
 
 # Install the Postgres plugin
 if os.getenv("DATABASE_URL", None) is not None:
@@ -107,7 +103,7 @@ for unit in app.config['units']:
 
 # Set the timer for credits
 log.info('running credit timer')
-credit_timer = Timer(60.0, credit.credit,
+credit_timer = Timer(10.0, credit.credit,
                      kwargs={'app': app, 'rpc': rpc, 'log': log})
 credit_timer.name = 'credit_timer'
 credit_timer.daemon = True
@@ -153,6 +149,11 @@ def root():
     :return:
     """
     return {'success': True, 'message': 'ALP Server is operational'}
+
+
+@app.get('/favicon.ico')
+def get_favicon():
+    return static_file('favicon.ico', root='static')
 
 
 @app.post('/register')
@@ -398,9 +399,9 @@ def status(db):
     if not stats_data:
         return {'status': False, 'message': 'no statistics exist yet.'}
     response.set_header('Content-Type', 'application/json')
-    return json.dumps({'status': True, 'message': {'meta': json.loads(stats_data[2]),
-                                                   'totals': json.loads(stats_data[3]),
-                                                   'rewards': json.loads(stats_data[4]),
+    return json.dumps({'status': True, 'message': {'meta': stats_data['meta'],
+                                                   'totals': stats_data['totals'],
+                                                   'rewards': stats_data['rewards'],
                                                    'prices': prices},
                        'server_time': int(time.time()),
                        'server_up_time': int((time.time() - app.config['start_time']))},
@@ -414,6 +415,13 @@ def user_orders(db, user):
     :param db:
     :return:
     """
+    # error if the user doesn't exist
+    db.execute("SELECT id FROM users WHERE key=%s", (user,))
+    exists = db.fetchone()
+    if exists is None:
+        log.error('user %s does not exist', user)
+        return {'success': False, 'message': 'user {} does not exist'.format(user)}
+    # fetch the users orders
     db.execute("SELECT id,order_id,exchange,unit,side,rank,order_amount,order_price,"
                "server_price,deviation,credited FROM orders WHERE key=%s ORDER BY id "
                "DESC LIMIT 100", (user,))
@@ -422,29 +430,23 @@ def user_orders(db, user):
     output_orders = []
     # parse the orders
     for order in orders:
-        # build the order into a dict
-        # id, order_id, order_amount, side, order_price, server_price,
-        # exchange, unit, deviation, credited
-        output_order = {'order_id': order[1], 'exchange': order[2], 'unit': order[3],
-                        'side': order[4], 'rank': order[5], 'amount': order[6],
-                        'price': order[7], 'server_price': order[8],
-                        'deviation': order[9], 'credited': order[10]}
         # get credit detail if the order has been credited
-        if order[7] == 1:
+        if order['credited'] == 1:
             db.execute("SELECT time,total,percentage,reward FROM credits WHERE "
-                       "order_id=%s", (order[0],))
+                       "order_id=%s", (order['order_id'],))
             cred = db.fetchone()
-            output_order['credited_time'] = cred[0]
-            output_order['total_liquidity'] = round(cred[1], 8)
-            output_order['percentage'] = round(cred[2], 8)
-            output_order['reward'] = round(cred[3], 8)
-        output_orders.append(output_order)
+            order['credited_time'] = cred['time']
+            order['total_liquidity'] = round(cred['total'], 8)
+            order['percentage'] = round(cred['percentage'], 8)
+            order['reward'] = round(cred['reward'], 8)
+        output_orders.append(order)
     return {'success': True, 'message': output_orders, 'server_time': int(time.time())}
 
 
+@app.get('/<user>')
 @app.get('/<user>/stats')
 def user_credits(db, user):
-    """
+    """1
     Get the users current stats
     :param db:
     :return:
@@ -457,6 +459,12 @@ def user_credits(db, user):
     percentage provided last round
 
     """
+    # error if the user doesn't exist
+    db.execute("SELECT id FROM users WHERE key=%s", (user,))
+    exists = db.fetchone()
+    if exists is None:
+        log.error('user %s does not exist', user)
+        return {'success': False, 'message': 'user {} does not exist'.format(user)}
     # set the user stats to return if nothing is gathered
     user_stats = {'total_reward': 0.0,
                   'current_reward': 0.0,
@@ -465,23 +473,25 @@ def user_credits(db, user):
     db.execute("SELECT SUM(reward) FROM credits WHERE key=%s", (user,))
     total = db.fetchone()
     if total['sum'] is not None:
-        user_stats['total_reward'] = round(float(total), 8)
+        user_stats['total_reward'] = round(float(total['sum']), 8)
     # get the current reward
     db.execute("SELECT SUM(reward) FROM credits WHERE key=%s AND paid=0", (user,))
     current = db.fetchone()
     if current['sum'] is not None:
-        user_stats['current_reward'] = round(float(current), 8)
+        user_stats['current_reward'] = round(float(current['sum']), 8)
     # calculate the last 10 round net worth for this user
     db.execute("SELECT DISTINCT time FROM credits ORDER BY time DESC LIMIT 50")
     last_rounds = db.fetchall()
     for round_time in last_rounds:
-        db.execute("SELECT SUM(provided), SUM(reward) FROM credits WHERE key=%s AND "
-                   "time=%s", (user, round_time[0]))
+        db.execute("SELECT SUM(provided) AS provided, SUM(reward) AS reward FROM credits "
+                   "WHERE key=%s AND "
+                   "time=%s", (user, round_time['time']))
         worth = db.fetchone()
         if worth is not None:
-            round_worth = {'round_time': round_time[0],
-                           'provided': worth[0],
-                           'reward': worth[1]}
+            round_worth = {'round_time': round_time['time'],
+                           'provided': 0.0 if worth['provided'] is None
+                           else worth['provided'],
+                           'reward': 0.0 if worth['reward'] is None else worth['reward']}
             user_stats['history'].append(round_worth)
     return {'success': True, 'message': user_stats, 'server_time': int(time.time())}
 

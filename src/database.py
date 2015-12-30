@@ -26,8 +26,8 @@ def build(app, log):
               "key TEXT, exchange TEXT, unit TEXT, rank TEXT, side TEXT, "
               "order_id FLOAT8, provided FLOAT8, total FLOAT8, percentage FLOAT8, "
               "reward FLOAT8, paid INT2)")
-    c.execute("CREATE TABLE IF NOT EXISTS stats (id SERIAL, time FLOAT8, meta TEXT, "
-              "totals TEXT, rewards TEXT)")
+    c.execute("CREATE TABLE IF NOT EXISTS stats (id SERIAL, time FLOAT8, meta JSONB, "
+              "totals JSONB, rewards JSONB)")
     c.execute("CREATE TABLE IF NOT EXISTS info (key TEXT, value TEXT)")
     c.execute("SELECT value FROM info WHERE key = %s", ('last_credit_time', ))
     if c.fetchone() is None:
