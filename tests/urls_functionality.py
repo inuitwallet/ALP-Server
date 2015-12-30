@@ -166,6 +166,12 @@ del data['unit']
 resp = app.post('/liquidity', headers=headers, params=json.dumps(data))
 assert resp.json == {'success': False, 'message': 'no unit provided'}
 
+log.debug('test liquidity with incorrect user')
+data = test_data.copy()
+data['user'] = 'blahblahblah'
+resp = app.post('/liquidity', headers=headers, params=json.dumps(data))
+assert resp.json == {'success': False, 'message': 'user blahblahblah is not registered'}
+
 log.debug('test liquidity complete')
 data = test_data.copy()
 resp = app.post('/liquidity', headers=headers, params=json.dumps(data))

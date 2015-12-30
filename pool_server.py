@@ -420,7 +420,7 @@ def user_orders(db, user):
     exists = db.fetchone()
     if exists is None:
         log.error('user %s does not exist', user)
-        return {'success': False, 'message': 'user {} does not exist'.format(user)}
+        return {'success': False, 'message': 'user {} is not registered'.format(user)}
     # fetch the users orders
     db.execute("SELECT id,order_id,exchange,unit,side,rank,order_amount,order_price,"
                "server_price,deviation,credited FROM orders WHERE key=%s ORDER BY id "
@@ -463,7 +463,7 @@ def user_credits(db, user):
     exists = db.fetchone()
     if exists is None:
         log.error('user %s does not exist', user)
-        return {'success': False, 'message': 'user {} does not exist'.format(user)}
+        return {'success': False, 'message': 'user {} is not registered'.format(user)}
     # set the user stats to return if nothing is gathered
     user_stats = {'total_reward': 0.0,
                   'current_reward': 0.0,
