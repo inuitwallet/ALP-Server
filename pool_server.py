@@ -1,5 +1,7 @@
 import json
 import logging
+import urlparse
+
 import os
 from threading import Timer
 from requestlogger import WSGILogger, ApacheFormatter
@@ -45,22 +47,31 @@ rotating_file.setFormatter(formatter)
 log.addHandler(rotating_file)
 log.addHandler(stream)
 
-# Create the database if one doesn't exist
-database.build(app, log)
-
-# Install the Database plugin based on the environment
-if os.getenv('DATABASE', '') == 'POSTGRES':
-    app.install(bottle_pgsql.Plugin('dbname={} user={} password={}'.format(
-        app.config['db.name'], app.config['db.user'], app.config['db.pass'])))
-else:
-    app.install(SQLitePlugin(dbfile='pool.db', keyword='db'))
-
 # Load the configs
 log.info('load pool config')
 app.config.load_config('pool_config')
 
 log.info('load exchange config')
 load_config.load(app, 'exchange_config')
+
+# Install the Postgres plugin
+if os.getenv("DATABASE_URL", None) is not None:
+    urlparse.uses_netloc.append("postgres")
+    url = urlparse.urlparse(os.environ["DATABASE_URL"])
+    conn = app.install(bottle_pgsql.Plugin('dbname={} user={} password={} '
+                                           'host={} port={}'.format(url.path[1:],
+                                                                    url.username,
+                                                                    url.password,
+                                                                    url.hostname,
+                                                                    url.port)))
+else:
+    conn = app.install(bottle_pgsql.Plugin('dbname={} user={} password={} '
+                                           'host={} port={}'.format(
+            app.config['db.name'], app.config['db.user'], app.config['db.pass'],
+            app.config['db.host'], app.config['db.port'])))
+
+# Create the database if one doesn't exist
+database.build(app, log)
 
 # Create the Exchange wrapper objects
 wrappers = {'bittrex': Bittrex(),
@@ -105,12 +116,12 @@ credit_timer.start()
 log.info('running payout timer')
 conn = database.get_db(app)
 db = conn.cursor()
-next_payout_time = int(db.execute("SELECT value FROM info WHERE key=?",
-                                  ('next_payout_time',)).fetchone()[0])
+db.execute("SELECT value FROM info WHERE key = %s", ('next_payout_time',))
+next_payout_time = int(db.fetchone()[0])
 if next_payout_time == 0:
     payout_time = 86400
-    db.execute('UPDATE info SET value=? WHERE key=?', (int(time.time() + payout_time),
-                                                       'next_payout_time'))
+    db.execute('UPDATE info SET value=%s WHERE key=%s', (int(time.time() + payout_time),
+                                                         'next_payout_time'))
 else:
     payout_time = int(next_payout_time - int(time.time()))
 conn.commit()
@@ -201,14 +212,14 @@ def register(db):
         return {'success': False, 'message': '{} is not supported on {}'.format(unit,
                                                                                 exchange)}
     # Check if the user already exists in the database
-    check = db.execute("SELECT id FROM users WHERE user=? AND address=? AND "
-                       "exchange=? AND unit=?;", (user, address, exchange,
-                                                  unit)).fetchone()
+    db.execute("SELECT id FROM users WHERE user=%s AND address=%s AND exchange=%s "
+               "AND unit=%s;", (user, address, exchange, unit))
+    check = db.fetchone()
     if check:
         log.warn('user is already registered')
         return {'success': False, 'message': 'user is already registered'}
-    db.execute("INSERT INTO users ('user','address','exchange','unit') VALUES (?,?,?,?)",
-               (user, address, exchange, unit))
+    db.execute("INSERT INTO users ('key','address','exchange','unit') VALUES (%s,%s,%s,"
+               "%s)", (user, address, exchange, unit))
     log.info('user %s successfully registered', user)
     return {'success': True, 'message': 'user successfully registered'}
 
@@ -265,7 +276,8 @@ def liquidity(db):
         return {'success': False, 'message': '{} is not supported on {}'.format(unit,
                                                                                 exchange)}
     # check that the user is registered
-    user_check = db.execute("SELECT id FROM users WHERE user=?", (user,)).fetchone()
+    db.execute("SELECT id FROM users WHERE key=%s", (user,))
+    user_check = db.fetchone()
     if user_check is None:
         log.error('user %s is not registered', user)
         return {'success': False, 'message': 'user {} is not registered'.format(user)}
@@ -283,7 +295,7 @@ def liquidity(db):
                 format(unit)}
     # clear existing orders for the user
     log.info('clear existing orders for user %s', user)
-    db.execute("DELETE FROM orders WHERE user=? AND exchange=? AND unit=?", (user,
+    db.execute("DELETE FROM orders WHERE key=%s AND exchange=%s AND unit=%s", (user,
                                                                              exchange,
                                                                              unit))
     # Loop through the orders
@@ -299,9 +311,9 @@ def liquidity(db):
                                                                          order['side'])]):
             rank = 'rank_1'
         # save the order details
-        db.execute("INSERT INTO orders ('user','rank','order_id','order_amount',"
+        db.execute("INSERT INTO orders ('key','rank','order_id','order_amount',"
                    "'side','order_price','server_price','exchange','unit',"
-                   "'deviation','credited') VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                   "'deviation','credited') VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                    (user, rank, str(order['id']), float(order['amount']),
                     str(order['side']), float(order['price']), float(price), exchange,
                     unit, float(order_deviation), 0))
@@ -380,7 +392,8 @@ def status(db):
     for unit in app.config['units']:
         prices[unit] = pf[unit].price
     # get the latest stats from the database
-    stats_data = db.execute("SELECT * FROM stats ORDER BY id DESC LIMIT 1").fetchone()
+    db.execute("SELECT * FROM stats ORDER BY id DESC LIMIT 1")
+    stats_data = db.fetchone()
     if not stats_data:
         return {'status': False, 'message': 'no statistics exist yet.'}
     response.set_header('Content-Type', 'application/json')
@@ -400,10 +413,10 @@ def user_orders(db, user):
     :param db:
     :return:
     """
-    orders = db.execute("SELECT id,order_id,exchange,unit,side,rank,order_amount,"
-                        "order_price,server_price,deviation,credited FROM orders WHERE "
-                        "user=? ORDER BY id DESC LIMIT 100",
-                        (user,)).fetchall()
+    db.execute("SELECT id,order_id,exchange,unit,side,rank,order_amount,order_price,"
+               "server_price,deviation,credited FROM orders WHERE key=%s ORDER BY id "
+               "DESC LIMIT 100", (user,))
+    orders = db.fetchall()
     # build a list for the order output
     output_orders = []
     # parse the orders
@@ -417,8 +430,9 @@ def user_orders(db, user):
                         'deviation': order[9], 'credited': order[10]}
         # get credit detail if the order has been credited
         if order[7] == 1:
-            cred = db.execute("SELECT time,total,percentage,reward FROM credits WHERE "
-                              "order_id=?", (order[0],)).fetchone()
+            db.execute("SELECT time,total,percentage,reward FROM credits WHERE "
+                       "order_id=%s", (order[0],))
+            cred = db.fetchone()
             output_order['credited_time'] = cred[0]
             output_order['total_liquidity'] = round(cred[1], 8)
             output_order['percentage'] = round(cred[2], 8)
@@ -447,21 +461,22 @@ def user_credits(db, user):
                   'current_reward': 0.0,
                   'history': []}
     # get the total reward
-    total = db.execute("SELECT SUM(reward) FROM credits WHERE user=?",
-                       (user,)).fetchone()[0]
+    db.execute("SELECT SUM(reward) FROM credits WHERE key=%s", (user,))
+    total = db.fetchone()[0]
     if total:
         user_stats['total_reward'] = round(float(total), 8)
     # get the current reward
-    current = db.execute("SELECT SUM(reward) FROM credits WHERE user=? AND paid=0",
-                         (user,)).fetchone()[0]
+    db.execute("SELECT SUM(reward) FROM credits WHERE key=%s AND paid=0", (user,))
+    current = db.fetchone()[0]
     if current:
         user_stats['current_reward'] = round(float(current), 8)
     # calculate the last 10 round net worth for this user
-    last_rounds = db.execute("SELECT DISTINCT time FROM credits ORDER BY time DESC "
-                             "LIMIT 50").fetchall()
+    db.execute("SELECT DISTINCT time FROM credits ORDER BY time DESC LIMIT 50")
+    last_rounds = db.fetchall()
     for round_time in last_rounds:
-        worth = db.execute("SELECT SUM(provided), SUM(reward) FROM credits WHERE user=? "
-                           "AND time=?", (user, round_time[0])).fetchone()
+        db.execute("SELECT SUM(provided), SUM(reward) FROM credits WHERE key=%s AND "
+                   "time=%s", (user, round_time[0]))
+        worth = db.fetchone()
         if worth is not None:
             round_worth = {'round_time': round_time[0],
                            'provided': worth[0],

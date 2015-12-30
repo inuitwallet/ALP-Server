@@ -73,7 +73,7 @@ class TestCredits(unittest.TestCase):
                 for side in self.test_data[rank][user]:
                     c.execute("INSERT INTO orders ('user','rank','order_id',"
                               "'order_amount','side','exchange','unit','credited') "
-                              "VALUES (?,?,?,?,?,?,?,?)",
+                              "VALUES (%s,%s,%s,%s,%s,%s,%s,%s)",
                               (user, rank, random.randint(0, 250),
                                self.test_data[rank][user][side], side, 'test_exchange',
                                'btc', 0))
@@ -98,7 +98,8 @@ class TestCredits(unittest.TestCase):
         # get the orders from the database
         conn = database.get_db(self.app)
         c = conn.cursor()
-        orders = c.execute("SELECT * FROM orders").fetchall()
+        c.execute("SELECT * FROM orders")
+        orders = c.fetchall()
 
         # get the data for rank_1 as calculated by the test function
         total = credit.get_total_liquidity(self.app, orders)
@@ -141,7 +142,8 @@ class TestCredits(unittest.TestCase):
         # get the credit details from the database
         conn = database.get_db(self.app)
         c = conn.cursor()
-        credit_data = c.execute("SELECT * FROM credits").fetchall()
+        c.execute("SELECT * FROM credits")
+        credit_data = c.fetchall()
         # self.log.debug(credit_data)
         # check the credits are correct
         for cred in credit_data:

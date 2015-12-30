@@ -40,12 +40,13 @@ def credit(app, rpc, log, run_stats=True):
     conn = database.get_db(app)
     db = conn.cursor()
     # Get all the orders from the database.
-    all_orders = db.execute("SELECT * FROM orders WHERE credited=0").fetchall()
+    db.execute("SELECT * FROM orders WHERE credited=0")
+    all_orders = db.fetchall()
     if len(all_orders) > 0:
         log_output = True
         log.info('Start credit')
     # store the credit time in the info table
-    db.execute("UPDATE info SET value=? WHERE key=?", (credit_time, 'last_credit_time'))
+    db.execute("UPDATE info SET value=%s WHERE key=%s", (credit_time, 'last_credit_time'))
 
     # de-duplicate the orders
     deduped_orders = []
@@ -59,7 +60,7 @@ def credit(app, rpc, log, run_stats=True):
         # check if the order exists in our known orders list
         if order_hash in known_orders:
             # if this is a duplicate order, mark it as such in the database
-            db.execute("UPDATE orders SET credited=-1 WHERE id=?", (order[0],))
+            db.execute("UPDATE orders SET credited=-1 WHERE id=%s", (order[0],))
             continue
         # add it now as it is known
         known_orders.append(order_hash)
@@ -77,13 +78,13 @@ def credit(app, rpc, log, run_stats=True):
         # calculate the details
         total_liquidity, percentage, reward = calculate_reward(app, order, total)
         # and save to the database
-        db.execute("INSERT INTO credits (time,user,exchange,unit,rank,side,order_id,"
+        db.execute("INSERT INTO credits (time,key,exchange,unit,rank,side,order_id,"
                    "provided,total,percentage,reward,paid) VALUES "
-                   "(?,?,?,?,?,?,?,?,?,?,?,?)",
+                   "(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                    (credit_time, order[1], order[6], order[7], order[2], order[5],
                     order[0], order[4], total_liquidity, (percentage * 100), reward, 0))
         # update the original order too to indicate that it has been credited
-        db.execute("UPDATE orders SET credited=? WHERE id=?", (1, order[0]))
+        db.execute("UPDATE orders SET credited=%s WHERE id=%s", (1, order[0]))
     conn.commit()
     conn.close()
     if log_output:
@@ -143,7 +144,7 @@ def calculate_reward(app, order, total):
     return total_liquidity, percentage, reward
 
 
-def liquidity_info(app, rpc, log,  total):
+def liquidity_info(app, rpc, log, total):
     """
     Calculate the current amount of liquidity in ranks 1 and 2 and submit them to Nu
     :return:

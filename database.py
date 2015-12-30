@@ -1,4 +1,6 @@
 import sqlite3
+import urlparse
+
 import psycopg2
 import os
 
@@ -13,26 +15,26 @@ def build(app, log):
     """
     conn = get_db(app)
     c = conn.cursor()
-    log.info('create the users table')
-    c.execute("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, user TEXT, "
-              "address TEXT, exchange TEXT, unit TEXT)")
-    log.info('create the orders table')
-    c.execute("CREATE TABLE IF NOT EXISTS orders (id INTEGER PRIMARY KEY, user TEXT, "
-              "rank TEXT, order_id TEXT, order_amount NUMBER, side TEXT, "
-              "order_price NUMBER, server_price NUMBER, exchange TEXT, unit TEXT, "
-              "deviation NUMBER, credited INTEGER)")
-    log.info('create the credits table')
-    c.execute("CREATE TABLE IF NOT EXISTS credits (id INTEGER PRIMARY KEY, time NUMBER, "
-              "user TEXT, exchange TEXT, unit TEXT, rank TEXT, side TEXT, "
-              "order_id NUMBER, provided NUMBER, total NUMBER, percentage NUMBER, "
-              "reward NUMBER, paid INTEGER)")
-    log.info('create the stats table')
-    c.execute("CREATE TABLE IF NOT EXISTS stats (id INTEGER PRIMARY KEY, time NUMBER, "
-              "meta TEXT, totals TEXT, rewards TEXT)")
-    log.info('create the info table')
-    c.execute("CREATE TABLE IF NOT EXISTS info (key Text, value Text)")
-    c.execute("INSERT INTO info VALUES (?, ?)", ('last_credit_time', 0))
-    c.execute("INSERT INTO info VALUES (?, ?)", ('next_payout_time', 0))
+    log.info('create the database')
+    c.execute("CREATE TABLE IF NOT EXISTS users (id SERIAL, key TEXT, address "
+              "TEXT, exchange TEXT, unit TEXT)")
+    c.execute("CREATE TABLE IF NOT EXISTS orders (id SERIAL, key TEXT, rank TEXT, "
+              "order_id TEXT, order_amount FLOAT8, side TEXT, order_price FLOAT8, "
+              "server_price FLOAT8, exchange TEXT, unit TEXT, deviation FLOAT8, "
+              "credited INT2)")
+    c.execute("CREATE TABLE IF NOT EXISTS credits (id SERIAL, time FLOAT8, "
+              "key TEXT, exchange TEXT, unit TEXT, rank TEXT, side TEXT, "
+              "order_id FLOAT8, provided FLOAT8, total FLOAT8, percentage FLOAT8, "
+              "reward FLOAT8, paid INT2)")
+    c.execute("CREATE TABLE IF NOT EXISTS stats (id SERIAL, time FLOAT8, meta TEXT, "
+              "totals TEXT, rewards TEXT)")
+    c.execute("CREATE TABLE IF NOT EXISTS info (key TEXT, value TEXT)")
+    c.execute("SELECT value FROM info WHERE key = %s", ('last_credit_time', ))
+    if c.fetchone() is None:
+        c.execute("INSERT INTO info VALUES (%s, %s)", ('last_credit_time', 0))
+    c.execute("SELECT value FROM info WHERE key = %s", ('next_payout_time', ))
+    if c.fetchone() is None:
+        c.execute("INSERT INTO info VALUES (%s, %s)", ('next_payout_time', 0))
     conn.commit()
     conn.close()
     return
@@ -44,11 +46,18 @@ def get_db(app):
     database cursor object
     :return:
     """
-    if os.getenv('DATABASE', '') == 'POSTGRES':
-        conn = psycopg2.connect('dbname={} user={} password={} host={}'.format(
-            app.config['db.name'], app.config['db.user'], app.config['db.pass'],
-            app.config['db.host']))
+    if os.getenv("DATABASE_URL", None) is not None:
+        urlparse.uses_netloc.append("postgres")
+        url = urlparse.urlparse(os.environ["DATABASE_URL"])
+        conn = psycopg2.connect(database=url.path[1:],
+                                user=url.username,
+                                password=url.password,
+                                host=url.hostname,
+                                port=url.port)
     else:
-        conn = sqlite3.connect('pool.db')
+        conn = psycopg2.connect(database=app.config['db.name'],
+                                user=app.config['db.user'],
+                                password=app.config['db.pass'],
+                                host=app.config['db.host'],
+                                port=app.config['db.port'])
     return conn
-

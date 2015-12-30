@@ -16,10 +16,10 @@ def stats(app, log, log_output):
     conn = database.get_db(app)
     db = conn.cursor()
     # get the last credit time
-    last_credit_time = int(db.execute("SELECT value FROM info WHERE key=?",
-                                      ('last_credit_time',)).fetchone()[0])
-    next_payout_time = int(db.execute("SELECT value FROM info WHERE key=?",
-                                      ('next_payout_time',)).fetchone()[0])
+    db.execute("SELECT value FROM info WHERE key=%s", ('last_credit_time',))
+    last_credit_time = int(db.fetchone()[0])
+    db.execute("SELECT value FROM info WHERE key=%s", ('next_payout_time',))
+    next_payout_time = int(db.fetchone()[0])
     # build the blank data object
     meta = {'last-credit-time': last_credit_time, 'number-of-users': 0,
             'number-of-users-active': 0, 'number-of-orders': 0,
@@ -46,12 +46,13 @@ def stats(app, log, log_output):
                     totals['{}-{}-{}-{}'.format(exchange, unit, side, rank)] = 0.0
                     rewards['{}-{}-{}-{}'.format(exchange, unit, side, rank)] = 0.0
     # get the number of users
-    meta['number-of-users'] = db.execute("SELECT COUNT(id) FROM users").fetchone()[0]
+    db.execute("SELECT COUNT(id) FROM users")
+    meta['number-of-users'] = db.fetchone()[0]
     # create a list of active users
     active_users = []
     # get the latest credit data from the credits field
-    credit_data = db.execute("SELECT * FROM credits WHERE time=?",
-                             (last_credit_time,)).fetchall()
+    db.execute("SELECT * FROM credits WHERE time=%s", (last_credit_time,))
+    credit_data = db.fetchall()
     # parse the credit_data
     # credits schema:
     # id, time, user, exchange, unit, rank, side, order_id, order_price,
@@ -104,7 +105,7 @@ def stats(app, log, log_output):
                         app.config['{}.{}.{}.{}.reward'.format(ex, unit, side, rank)],
                         totals['{}-{}-{}-{}'.format(ex, unit, side, rank)])
     # save the details to the database
-    db.execute("INSERT INTO stats (time,meta,totals,rewards) VALUES (?,?,?,?)",
+    db.execute("INSERT INTO stats (time,meta,totals,rewards) VALUES (%s,%s,%s,%s)",
                (int(time.time()), json.dumps(meta),
                 json.dumps(totals), json.dumps(rewards)))
     conn.commit()

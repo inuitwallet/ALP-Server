@@ -9,6 +9,7 @@ host=127.0.0.1
 port=14002
 
 [db]
-name=alp-server
-user=postgres
-pass=123456789_change_me
+name=alp
+user=alp
+pass=Trip-Tough-Basis-Brother-2
+host=localhost
