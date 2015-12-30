@@ -26,8 +26,8 @@ class TestCredits(unittest.TestCase):
         self.log.debug('running setUp')
         # set us up a bottle application with correct config
         self.app = bottle.Bottle()
-        self.app.config.load_config('../pool_config')
-        load_config.load(self.app, 'exchange_config')
+        self.app.config.load_config('config/pool_config')
+        load_config.load(self.app, 'config/exchange_config')
         # build the database if it doesn't exist
         database.build(self.app, self.log)
         # clear any existing orders in the database
