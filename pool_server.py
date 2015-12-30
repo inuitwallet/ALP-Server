@@ -67,8 +67,9 @@ if os.getenv("DATABASE_URL", None) is not None:
 else:
     conn = app.install(bottle_pgsql.Plugin('dbname={} user={} password={} '
                                            'host={} port={}'.format(
-            app.config['db.name'], app.config['db.user'], app.config['db.pass'],
-            app.config['db.host'], app.config['db.port'])))
+                                            app.config['db.name'], app.config['db.user'],
+                                            app.config['db.pass'], app.config['db.host'],
+                                            app.config['db.port'])))
 
 # Create the database if one doesn't exist
 database.build(app, log)
@@ -212,7 +213,7 @@ def register(db):
         return {'success': False, 'message': '{} is not supported on {}'.format(unit,
                                                                                 exchange)}
     # Check if the user already exists in the database
-    db.execute("SELECT id FROM users WHERE user=%s AND address=%s AND exchange=%s "
+    db.execute("SELECT id FROM users WHERE key=%s AND address=%s AND exchange=%s "
                "AND unit=%s;", (user, address, exchange, unit))
     check = db.fetchone()
     if check:

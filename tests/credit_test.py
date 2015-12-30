@@ -1,10 +1,8 @@
 import logging
-import os
 import random
 import unittest
 import bottle
 import sys
-
 sys.path.append('../')
 import credit
 import database
