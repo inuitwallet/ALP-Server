@@ -463,13 +463,13 @@ def user_credits(db, user):
                   'history': []}
     # get the total reward
     db.execute("SELECT SUM(reward) FROM credits WHERE key=%s", (user,))
-    total = db.fetchone()[0]
-    if total:
+    total = db.fetchone()
+    if total['sum'] is not None:
         user_stats['total_reward'] = round(float(total), 8)
     # get the current reward
     db.execute("SELECT SUM(reward) FROM credits WHERE key=%s AND paid=0", (user,))
-    current = db.fetchone()[0]
-    if current:
+    current = db.fetchone()
+    if current['sum'] is not None:
         user_stats['current_reward'] = round(float(current), 8)
     # calculate the last 10 round net worth for this user
     db.execute("SELECT DISTINCT time FROM credits ORDER BY time DESC LIMIT 50")
