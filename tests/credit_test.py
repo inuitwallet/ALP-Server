@@ -7,7 +7,6 @@ import bottle
 
 sys.path.append('../')
 from src import credit, database, load_config
-from config import load_config
 
 
 class TestCredits(unittest.TestCase):
