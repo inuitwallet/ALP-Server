@@ -443,7 +443,6 @@ def user_orders(db, user):
     return {'success': True, 'message': output_orders, 'server_time': int(time.time())}
 
 
-@app.get('/<user>')
 @app.get('/<user>/stats')
 def user_credits(db, user):
     """1
