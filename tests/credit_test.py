@@ -2,7 +2,6 @@ import logging
 import os
 import random
 import unittest
-import sqlite3
 import bottle
 import sys
 
@@ -71,23 +70,14 @@ class TestCredits(unittest.TestCase):
         for rank in self.test_data:
             for user in self.test_data[rank]:
                 for side in self.test_data[rank][user]:
-                    c.execute("INSERT INTO orders ('key','rank','order_id',"
-                              "'order_amount','side','exchange','unit','credited') "
-                              "VALUES (%s,%s,%s,%s,%s,%s,%s,%s)",
+                    c.execute("INSERT INTO orders (key,rank,order_id,order_amount,side,"
+                              "exchange,unit,credited) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)",
                               (user, rank, random.randint(0, 250),
                                self.test_data[rank][user][side], side, 'test_exchange',
                                'btc', 0))
         conn.commit()
         conn.close()
         self.log.debug('ending setUp')
-
-    def tearDown(self):
-        """
-        Remove database file
-        :return:
-        """
-        self.log.debug('running tearDown')
-        os.remove('pool.db')
 
     def test_get_total_liquidity(self):
         """
@@ -155,7 +145,7 @@ class TestCredits(unittest.TestCase):
             self.assertEqual(cred[8], this_amount)
             # check the percentage is correct
             this_percentage = (this_amount / this_total) * 100
-            self.assertEqual(cred[10], this_percentage)
+            self.assertAlmostEqual(cred[10], this_percentage)
             # check the reward is credited correctly
             this_reward = (this_percentage / 100) * self.app.config['{}.{}.'
                                                                     '{}.{}.reward'

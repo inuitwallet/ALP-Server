@@ -218,7 +218,7 @@ def register(db):
     if check:
         log.warn('user is already registered')
         return {'success': False, 'message': 'user is already registered'}
-    db.execute("INSERT INTO users ('key','address','exchange','unit') VALUES (%s,%s,%s,"
+    db.execute("INSERT INTO users (key,address,exchange,unit) VALUES (%s,%s,%s,"
                "%s)", (user, address, exchange, unit))
     log.info('user %s successfully registered', user)
     return {'success': True, 'message': 'user successfully registered'}
@@ -311,9 +311,9 @@ def liquidity(db):
                                                                          order['side'])]):
             rank = 'rank_1'
         # save the order details
-        db.execute("INSERT INTO orders ('key','rank','order_id','order_amount',"
-                   "'side','order_price','server_price','exchange','unit',"
-                   "'deviation','credited') VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+        db.execute("INSERT INTO orders (key,rank,order_id,order_amount,side,order_price,"
+                   "server_price,exchange,unit,deviation,credited) VALUES "
+                   "(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                    (user, rank, str(order['id']), float(order['amount']),
                     str(order['side']), float(order['price']), float(price), exchange,
                     unit, float(order_deviation), 0))
