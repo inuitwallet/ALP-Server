@@ -71,7 +71,7 @@ class TestCredits(unittest.TestCase):
         for rank in self.test_data:
             for user in self.test_data[rank]:
                 for side in self.test_data[rank][user]:
-                    c.execute("INSERT INTO orders ('user','rank','order_id',"
+                    c.execute("INSERT INTO orders ('key','rank','order_id',"
                               "'order_amount','side','exchange','unit','credited') "
                               "VALUES (%s,%s,%s,%s,%s,%s,%s,%s)",
                               (user, rank, random.randint(0, 250),
