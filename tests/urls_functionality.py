@@ -108,7 +108,7 @@ data = test_data.copy()
 resp = app.post('/register', headers=headers, params=json.dumps(data))
 assert resp.json == {'success': True, 'message': 'user successfully registered'}
 
-log.debug('test register reregister')
+log.debug('test register re-register')
 data = test_data.copy()
 resp = app.post('/register', headers=headers, params=json.dumps(data))
 assert resp.json == {'success': False, 'message': 'user is already registered'}
