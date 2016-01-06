@@ -15,7 +15,7 @@ def build(app, log):
     """
     conn = get_db(app)
     c = conn.cursor()
-    log.info('create the database')
+    log.info('configure database schema')
     c.execute("CREATE TABLE IF NOT EXISTS users (id SERIAL, key TEXT, address "
               "TEXT, exchange TEXT, unit TEXT)")
     c.execute("CREATE TABLE IF NOT EXISTS orders (id SERIAL, key TEXT, rank TEXT, "

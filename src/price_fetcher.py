@@ -63,6 +63,7 @@ class PriceFetcher(object):
             sub_timer = Timer(30.0, self.subscribe)
             sub_timer.daemon = True
             sub_timer.start()
+            return
         # init with the streamer to get a token
         self.request_init()
         # make sure we got a token
@@ -75,6 +76,7 @@ class PriceFetcher(object):
             sub_timer = Timer(30.0, self.subscribe)
             sub_timer.daemon = True
             sub_timer.start()
+            return
         # start to get the price and start subscription
         self.start()
         # make sure we got a response
@@ -87,6 +89,7 @@ class PriceFetcher(object):
             sub_timer = Timer(30.0, self.subscribe)
             sub_timer.daemon = True
             sub_timer.start()
+            return
         # finally subscribe in a thread
         sub_thread = Thread(target=self.subscription_thread)
         sub_thread.daemon = True
@@ -295,8 +298,12 @@ class PriceFetcher(object):
         for feed in feeds:
             fetch_price = getattr(self, '{}'.format(feed))()
             if fetch_price is not None:
-                self.log.info('fetched price from %s' % feed)
+                self.log.info('%s price fetched from %s and set to %s',
+                              self.unit,
+                              feed,
+                              fetch_price)
                 return fetch_price
+        self.log.warn('failed to fetch price for %s', self.unit)
         return None
 
     def yahoo(self):
@@ -308,10 +315,10 @@ class PriceFetcher(object):
               'finance.xchange%20where%20pair%20in%20(%22USD{}%22)&format=json&' \
               'diagnostics=false&env=store%3A%2F%2Fdatatables.org%2' \
               'Falltableswithkeys&callback='.format(self.unit.upper())
-        r = requests.get(url)
         try:
+            r = requests.get(url)
             data = r.json()
-        except ValueError:
+        except (ValueError, requests.exceptions.RequestException):
             return None
         if 'query' not in data:
             return None
@@ -330,12 +337,12 @@ class PriceFetcher(object):
         """
         url = 'http://www.google.com/finance/info?q=CURRENCY%3aUSD{}'.format(
             self.unit.upper())
-        r = requests.get(url)
-        # some odd characters to remove before we get json
-        data = r.text.replace("//", "").replace("[", "").replace("]", "")
         try:
+            r = requests.get(url)
+            # some odd characters to remove before we get json
+            data = r.text.replace("//", "").replace("[", "").replace("]", "")
             data = json.loads(data)
-        except ValueError:
+        except (ValueError, requests.exceptions.RequestException):
             return None
         if 'l' not in data:
             return None
@@ -347,10 +354,10 @@ class PriceFetcher(object):
         :return:
         """
         url = 'https://www.bitstamp.net/api/eur_usd/'
-        r = requests.get(url)
         try:
+            r = requests.get(url)
             data = r.json()
-        except ValueError:
+        except (ValueError, requests.exceptions.RequestException):
             return None
         if 'sell' not in data:
             return None
@@ -364,10 +371,10 @@ class PriceFetcher(object):
         :return:
         """
         url = 'https://api.bitfinex.com/v1/pubticker/{}usd'.format(self.unit.lower())
-        r = requests.get(url)
         try:
+            r = requests.get(url)
             data = r.json()
-        except ValueError:
+        except (ValueError, requests.exceptions.RequestException):
             return None
         if 'last_price' not in data:
             return None
@@ -379,10 +386,10 @@ class PriceFetcher(object):
         :return:
         """
         url = 'https://blockchain.info/ticker'
-        r = requests.get(url)
         try:
+            r = requests.get(url)
             data = r.json()
-        except ValueError:
+        except (ValueError, requests.exceptions.RequestException):
             return None
         if 'USD' not in data:
             return None
@@ -396,10 +403,10 @@ class PriceFetcher(object):
         :return:
         """
         url = 'https://api.bitcoinaverage.com/ticker/global/USD'
-        r = requests.get(url)
         try:
+            r = requests.get(url)
             data = r.json()
-        except ValueError:
+        except (ValueError, requests.exceptions.RequestException):
             return None
         if 'last' not in data:
             return None
@@ -411,10 +418,10 @@ class PriceFetcher(object):
         :return:
         """
         url = 'https://coinbase.com/api/v1/prices/spot_rate?currency=USD'
-        r = requests.get(url)
         try:
+            r = requests.get(url)
             data = r.json()
-        except ValueError:
+        except (ValueError, requests.exceptions.RequestException):
             return None
         if 'amount' not in data:
             return None
@@ -426,10 +433,10 @@ class PriceFetcher(object):
         :return:
         """
         url = 'https://www.bitstamp.net/api/ticker/'
-        r = requests.get(url)
         try:
+            r = requests.get(url)
             data = r.json()
-        except ValueError:
+        except (ValueError, requests.exceptions.RequestException):
             return None
         if 'last' not in data:
             return None
@@ -441,10 +448,10 @@ class PriceFetcher(object):
         :return:
         """
         url = 'https://btc-e.com/api/2/{}_usd/ticker/'.format(self.unit.lower())
-        r = requests.get(url)
         try:
+            r = requests.get(url)
             data = r.json()
-        except ValueError:
+        except (ValueError, requests.exceptions.RequestException):
             return None
         if 'ticker' not in data:
             return None
@@ -458,10 +465,10 @@ class PriceFetcher(object):
         :return:
         """
         url = 'http://coinmarketcap-nexuist.rhcloud.com/api/{}'.format(self.unit.lower())
-        r = requests.get(url)
         try:
+            r = requests.get(url)
             data = r.json()
-        except ValueError:
+        except (ValueError, requests.exceptions.RequestException):
             return None
         if 'price' not in data:
             return None
@@ -475,10 +482,10 @@ class PriceFetcher(object):
         :return:
         """
         url = 'http://coinmarketcap.northpole.ro/api/{}.json'.format(self.unit.lower())
-        r = requests.get(url)
         try:
+            r = requests.get(url)
             data = r.json()
-        except ValueError:
+        except (ValueError, requests.exceptions.RequestException):
             return None
         if 'price' not in data:
             return None

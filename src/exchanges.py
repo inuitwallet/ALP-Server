@@ -94,10 +94,10 @@ class CCEDK(object):
         self.pair_id = {}
         while not self.pair_id:
             url = 'https://www.ccedk.com/api/v1/stats/marketdepthfull'
-            r = requests.get(url)
             try:
+                r = requests.get(url)
                 data = r.json()
-            except ValueError:
+            except (ValueError, requests.exceptions.RequestException):
                 time.sleep(0.5)
                 continue
             if 'response' not in data:

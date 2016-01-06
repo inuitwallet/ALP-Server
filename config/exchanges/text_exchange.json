@@ -1,0 +1,44 @@
+{
+  "test_exchange": {
+    "btc": {
+      "ask": {
+        "tolerance": 0.0105,
+        "rank_1": {
+          "reward": 0.25
+        },
+        "rank_2": {
+          "reward": 0.01
+        }
+      },
+      "bid": {
+        "tolerance": 0.0105,
+        "rank_1": {
+          "reward": 0.15
+        },
+        "rank_2": {
+          "reward": 0.00
+        }
+      }
+    },
+    "ppc": {
+      "ask": {
+        "tolerance": 0.0105,
+        "rank_1": {
+          "reward": 0.25
+        },
+        "rank_2": {
+          "reward": 0.15
+        }
+      },
+      "bid": {
+        "tolerance": 0.0105,
+        "rank_1": {
+          "reward": 0.15
+        },
+        "rank_2": {
+          "reward": 0.00
+        }
+      }
+    }
+  }
+}

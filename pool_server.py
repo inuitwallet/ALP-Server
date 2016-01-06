@@ -11,8 +11,8 @@ import os
 from bitcoinrpc.authproxy import AuthServiceProxy
 from bottle import run, request, response, static_file
 from requestlogger import WSGILogger, ApacheFormatter
-from src import credit, database, payout, load_config
-from src.exchanges import Bittrex, BTER, CCEDK, Poloniex, TestExchange
+from src import credit, database, payout, config
+import src.exchanges
 from src.price_fetcher import PriceFetcher
 from src.utils import AddressCheck
 
@@ -43,12 +43,8 @@ rotating_file.setFormatter(formatter)
 log.addHandler(rotating_file)
 log.addHandler(stream)
 
-# Load the configs
-log.info('load pool config')
-app.config.load_config('config/pool_config')
-
-log.info('load exchange config')
-load_config.load(app, 'config/exchange_config')
+# Load the config
+config.load(app, log)
 
 # Install the Postgres plugin
 if os.getenv("DATABASE_URL", None) is not None:
@@ -71,14 +67,21 @@ else:
 database.build(app, log)
 
 # Create the Exchange wrapper objects
-wrappers = {'bittrex': Bittrex(),
-            'bter': BTER(),
-            'ccedk': CCEDK(),
-            'poloniex': Poloniex(),
-            'test_exchange': TestExchange(),
-            'test_exchange_2': TestExchange()}
+wrappers = {}
+if 'bittrex' in app.config['exchanges']:
+    wrappers['bittrex'] = src.exchanges.Bittrex()
+if 'bter' in app.config['exchanges']:
+    wrappers['bter'] = src.exchanges.BTER()
+if 'ccedk' in app.config['exchanges']:
+    wrappers['ccedk'] = src.exchanges.CCEDK()
+if 'poloniex' in app.config['exchanges']:
+    wrappers['poloniex'] = src.exchanges.Poloniex()
+if 'test_exchange' in app.config['exchanges']:
+    wrappers['test_exchange'] = src.exchanges.TestExchange()
+if 'test_exchange_2' in app.config['exchanges']:
+    wrappers['test_exchange_2'] = src.exchanges.TestExchange()
 
-# save the start time of the server for reporting uptime
+# save the start time of the server for reporting up-time
 app.config['start_time'] = time.time()
 
 # Set up a connection with nud
@@ -88,7 +91,7 @@ rpc = AuthServiceProxy("http://{}:{}@{}:{}".format(app.config['rpc.user'],
                                                    app.config['rpc.host'],
                                                    app.config['rpc.port']))
 
-
+payout.pay(app, rpc, log)
 # set up a price fetcher for each currency
 pf = {}
 for unit in app.config['units']:
@@ -487,7 +490,7 @@ def user_credits(db, user):
                    "time=%s", (user, round_time['time']))
         worth = db.fetchone()
         if worth is not None:
-            round_worth = {'round_time': round_time['time'],
+            round_worth = {'round_time': int(round_time['time']),
                            'provided': 0.0 if worth['provided'] is None
                            else worth['provided'],
                            'reward': 0.0 if worth['reward'] is None else worth['reward']}

@@ -6,7 +6,7 @@ import unittest
 import bottle
 
 sys.path.append('../')
-from src import credit, database, load_config
+from src import credit, database, config
 
 
 class TestCredits(unittest.TestCase):
@@ -27,7 +27,7 @@ class TestCredits(unittest.TestCase):
         # set us up a bottle application with correct config
         self.app = bottle.Bottle()
         self.app.config.load_config('config/pool_config')
-        load_config.load(self.app, 'config/exchange_config')
+        config.load(self.app, 'config/exchange_config')
         # build the database if it doesn't exist
         database.build(self.app, self.log)
         # clear any existing orders in the database
