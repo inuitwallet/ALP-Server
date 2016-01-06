@@ -44,24 +44,25 @@ log.addHandler(rotating_file)
 log.addHandler(stream)
 
 # Load the config
-config.load(app, log)
+config.load(app, log, log_output=True)
 
 # Install the Postgres plugin
 if os.getenv("DATABASE_URL", None) is not None:
     urlparse.uses_netloc.append("postgres")
     url = urlparse.urlparse(os.environ["DATABASE_URL"])
-    conn = app.install(bottle_pgsql.Plugin('dbname={} user={} password={} '
-                                           'host={} port={}'.format(url.path[1:],
-                                                                    url.username,
-                                                                    url.password,
-                                                                    url.hostname,
-                                                                    url.port)))
+    app.install(bottle_pgsql.Plugin('dbname={} user={} password={} '
+                                    'host={} port={}'.format(url.path[1:],
+                                                             url.username,
+                                                             url.password,
+                                                             url.hostname,
+                                                             url.port)))
 else:
-    conn = app.install(bottle_pgsql.Plugin('dbname={} user={} password={} '
-                                           'host={} port={}'.format(
-                                            app.config['db.name'], app.config['db.user'],
-                                            app.config['db.pass'], app.config['db.host'],
-                                            app.config['db.port'])))
+    app.install(bottle_pgsql.Plugin('dbname={} user={} password={} '
+                                    'host={} port={}'.format(app.config['db.name'],
+                                                             app.config['db.user'],
+                                                             app.config['db.pass'],
+                                                             app.config['db.host'],
+                                                             app.config['db.port'])))
 
 # Create the database if one doesn't exist
 database.build(app, log)
@@ -91,7 +92,6 @@ rpc = AuthServiceProxy("http://{}:{}@{}:{}".format(app.config['rpc.user'],
                                                    app.config['rpc.host'],
                                                    app.config['rpc.port']))
 
-payout.pay(app, rpc, log)
 # set up a price fetcher for each currency
 pf = {}
 for unit in app.config['units']:

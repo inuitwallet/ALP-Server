@@ -5,17 +5,18 @@ from os.path import isfile, join
 __author__ = 'sammoth'
 
 
-def load(app, log):
+def load(app, log, log_output):
     """
     Helper method to load pool config
     :param app:
     :param log:
     :return:
     """
-    log.info('load pool config')
+    if log_output:
+        log.info('load pool config')
     app.config.load_config(join('config', 'pool_config'))
-
-    log.info('load exchanges config')
+    if log_output:
+        log.info('load exchanges config')
     app.config['exchanges'] = []
     app.config['units'] = []
     for exchange_file in listdir(join('config', 'exchanges')):

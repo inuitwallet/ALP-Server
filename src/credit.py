@@ -4,6 +4,7 @@ from threading import Timer, Thread
 import database
 import stats
 from bitcoinrpc.authproxy import JSONRPCException
+from src import config
 
 __author__ = 'sammoth'
 
@@ -33,6 +34,9 @@ def credit(app, rpc, log, run_stats=True):
     credit_timer.start()
 
     log_output = False
+
+    # reload the config
+    config.load(app, log, log_output)
 
     # calculate the credit time
     credit_time = int(time.time())
