@@ -7,15 +7,18 @@ import os
 __author__ = 'sammoth'
 
 
-def build(app, log):
+def build(app, log, log_output=True):
     """
     Build the necessary tables in the database
     use the 'IF NOT EXISTS' clause to allow for repeated running without barfing
+    :param log:
+    :param app:
     :return:
     """
     conn = get_db(app)
     c = conn.cursor()
-    log.info('configure database schema')
+    if log_output:
+        log.info('configure database schema')
     c.execute("CREATE TABLE IF NOT EXISTS users (id SERIAL, key TEXT, address "
               "TEXT, exchange TEXT, unit TEXT)")
     c.execute("CREATE TABLE IF NOT EXISTS orders (id SERIAL, key TEXT, rank TEXT, "
@@ -24,7 +27,7 @@ def build(app, log):
               "credited INT2)")
     c.execute("CREATE TABLE IF NOT EXISTS credits (id SERIAL, time FLOAT8, "
               "key TEXT, exchange TEXT, unit TEXT, rank TEXT, side TEXT, "
-              "order_id FLOAT8, provided FLOAT8, total FLOAT8, percentage FLOAT8, "
+              "order_id FLOAT8, provided FLOAT8, percentage FLOAT8, "
               "reward FLOAT8, paid INT2)")
     c.execute("CREATE TABLE IF NOT EXISTS stats (id SERIAL, time FLOAT8, meta JSONB, "
               "totals JSONB, rewards JSONB)")
@@ -44,6 +47,7 @@ def get_db(app):
     """
     Determine which database to use based on Environment Variables and return a
     database cursor object
+    :param app:
     :return:
     """
     if os.getenv("DATABASE_URL", None) is not None:
