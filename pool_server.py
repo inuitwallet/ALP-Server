@@ -444,7 +444,8 @@ def user_orders(db, user):
             order['credit_info']['unit_reward'] = stats['unit_reward']
             unit_ratio = stats['unit_total'] / stats['unit_target']
             unit_ratio = 1.0 if unit_ratio >= 1.0 else unit_ratio
-            order['credit_info']['calculated_unit_reward'] = stats['unit_reward'] * unit_ratio
+            order['credit_info']['calculated_unit_reward'] = stats['unit_'
+                                                                   'reward'] * unit_ratio
             order['credit_info']['side_ratio'] = stats['side_ratio']
             order['credit_info']['side_reward'] = order['credit_info'][
                 'calculated_unit_reward'] * stats['side_ratio']
