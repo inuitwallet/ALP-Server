@@ -10,8 +10,7 @@
           "ratio": 1.0
         },
         "rank_2": {
-          "ratio": 0.00,
-          "tolerance": 0.9895
+          "ratio": 0.00
         }
       },
       "bid": {
@@ -21,8 +20,7 @@
           "ratio": 1.0
         },
         "rank_2": {
-          "ratio": 0.00,
-          "tolerance": 0.9895
+          "ratio": 0.00
         }
       }
     },
@@ -36,8 +34,7 @@
           "ratio": 1.0
         },
         "rank_2": {
-          "ratio": 0.00,
-          "tolerance": 0.9895
+          "ratio": 0.00
         }
       },
       "bid": {
@@ -47,8 +44,7 @@
           "ratio": 1.0
         },
         "rank_2": {
-          "ratio": 0.00,
-          "tolerance": 0.9895
+          "ratio": 0.00
         }
       }
     }

@@ -1,6 +1,4 @@
-import sqlite3
 import urlparse
-
 import psycopg2
 import os
 
@@ -13,6 +11,7 @@ def build(app, log, log_output=True):
     use the 'IF NOT EXISTS' clause to allow for repeated running without barfing
     :param log:
     :param app:
+    :param log_output:
     :return:
     """
     conn = get_db(app)
@@ -24,13 +23,13 @@ def build(app, log, log_output=True):
     c.execute("CREATE TABLE IF NOT EXISTS orders (id SERIAL, key TEXT, rank TEXT, "
               "order_id TEXT, order_amount FLOAT8, side TEXT, order_price FLOAT8, "
               "server_price FLOAT8, exchange TEXT, unit TEXT, deviation FLOAT8, "
-              "credited INT2)")
+              "tolerance FLOAT8, credited INT2)")
     c.execute("CREATE TABLE IF NOT EXISTS credits (id SERIAL, time FLOAT8, "
               "key TEXT, exchange TEXT, unit TEXT, rank TEXT, side TEXT, "
               "order_id FLOAT8, provided FLOAT8, percentage FLOAT8, "
               "reward FLOAT8, paid INT2)")
     c.execute("CREATE TABLE IF NOT EXISTS stats (id SERIAL, time FLOAT8, meta JSONB, "
-              "totals JSONB, rewards JSONB)")
+              "totals JSONB, rewards JSONB, config JSONB)")
     c.execute("CREATE TABLE IF NOT EXISTS info (key TEXT, value TEXT)")
     c.execute("SELECT value FROM info WHERE key = %s", ('last_credit_time', ))
     if c.fetchone() is None:

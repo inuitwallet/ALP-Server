@@ -1,6 +1,7 @@
 import json
 import socket
 import time
+from httplib import CannotSendRequest
 from threading import Timer
 
 from bitcoinrpc.authproxy import JSONRPCException
@@ -51,7 +52,7 @@ def pay(app, rpc, log):
     except JSONRPCException as e:
         log.error('Payout failed - %s: \'%s\'', e.message, json.dumps(user_payouts))
         timer_time = 120.0
-    except socket.error:
+    except (socket.error, CannotSendRequest):
         log.error('Payout failed - no connection with nud: \'%s\'', json.dumps(
                 user_payouts))
         timer_time = 120.0

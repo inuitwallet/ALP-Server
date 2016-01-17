@@ -301,7 +301,6 @@ def liquidity(db):
         return {'success': False, 'message': 'unable to fetch current price for {}'.
                 format(unit)}
     # clear existing orders for the user
-    log.info('clear existing orders for user %s', user)
     db.execute("DELETE FROM orders WHERE key=%s AND exchange=%s AND unit=%s", (user,
                                                                                exchange,
                                                                                unit))
@@ -312,18 +311,26 @@ def liquidity(db):
                                   max(float(order['price']), float(price)))
         # Use the rank tolerances to determine the rank of the order
         order_rank = ''
+        # first build a sorted list of tolerances
+        tolerances = []
         for rank in app.config['{}.{}.{}.ranks'.format(exchange, unit, order['side'])]:
-            if float(order_deviation) <= float(app.config['{}.{}.{}.{}.tolerance'.format(
-                    exchange, unit, order['side'], rank)]):
-                order_rank = rank
+            try:
+                tolerance = app.config['{}.{}.{}.{}.tolerance'.format(
+                        exchange, unit, order['side'], rank)]
+            except KeyError:
+                tolerance = 1.00
+            tolerances.append((rank, tolerance))
+        for tolerance in sorted(tolerances, key=lambda tup: tup[1]):
+            if float(order_deviation) <= float(tolerance[1]):
+                order_rank = tolerance[0]
                 break
         # save the order details
         db.execute("INSERT INTO orders (key,rank,order_id,order_amount,side,order_price,"
-                   "server_price,exchange,unit,deviation,credited) VALUES "
-                   "(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                   "server_price,exchange,unit,deviation,tolerance,credited) VALUES "
+                   "(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                    (user, order_rank, str(order['id']), float(order['amount']),
                     str(order['side']), float(order['price']), float(price), exchange,
-                    unit, float(order_deviation), 0))
+                    unit, float(order_deviation), float(tolerance[1]), 0))
     log.info('user %s orders saved for validation', user)
     return {'success': True, 'message': 'orders saved for validation'}
 
@@ -402,8 +409,8 @@ def user_orders(db, user):
         return {'success': False, 'message': 'user {} is not registered'.format(user)}
     # fetch the users orders
     db.execute("SELECT id,order_id,exchange,unit,side,rank,order_amount,order_price,"
-               "server_price,deviation,credited FROM orders WHERE key=%s ORDER BY id "
-               "DESC LIMIT 100", (user,))
+               "server_price,deviation,tolerance,credited FROM orders WHERE key=%s ORDER "
+               "BY id DESC LIMIT 100", (user,))
     orders = db.fetchall()
     # build a list for the order output
     output_orders = []
@@ -411,13 +418,39 @@ def user_orders(db, user):
     for order in orders:
         # get credit detail if the order has been credited
         if order['credited'] == 1:
-            db.execute("SELECT time,total,percentage,reward FROM credits WHERE "
-                       "order_id=%s", (order['order_id'],))
+            db.execute("SELECT time,percentage,reward FROM credits WHERE "
+                       "order_id=%s", (order['id'],))
             cred = db.fetchone()
-            order['credited_time'] = cred['time']
-            order['total_liquidity'] = round(cred['total'], 8)
-            order['percentage'] = round(cred['percentage'], 8)
-            order['reward'] = round(cred['reward'], 8)
+            order['credit_info'] = {'credited_time': int(cred['time']),
+                                    'percentage_of_rank': round(cred['percentage'], 8),
+                                    'credit_amount': round(cred['reward'], 8)}
+            # get other details from the stats table
+            db.execute("SELECT totals->'{ex}'->'{unit}'->'total' as unit_total, "
+                       "config->'{ex}'->'{unit}'->'target' as unit_target, "
+                       "config->'{ex}'->'{unit}'->'reward' as unit_reward, "
+                       "config->'{ex}'->'{unit}'->'{side}'->'ratio' as side_ratio, "
+                       "totals->'{ex}'->'{unit}'->'{side}'->'{rank}' as rank_total, "
+                       "config->'{ex}'->'{unit}'->'{side}'->'{rank}'->'ratio' as "
+                       "rank_ratio, "
+                       "rewards->'{ex}'->'{unit}'->'{side}'->'{rank}' as rank_reward "
+                       "FROM stats WHERE time=%s".format(ex=order['exchange'],
+                                                         unit=order['unit'],
+                                                         side=order['side'],
+                                                         rank=order['rank']),
+                       (order['credit_info']['credited_time'], ))
+            stats = db.fetchone()
+            order['credit_info']['unit_total_liquidity'] = stats['unit_total']
+            order['credit_info']['unit_target'] = stats['unit_target']
+            order['credit_info']['unit_reward'] = stats['unit_reward']
+            unit_ratio = stats['unit_total'] / stats['unit_target']
+            unit_ratio = 1.0 if unit_ratio >= 1.0 else unit_ratio
+            order['credit_info']['calculated_unit_reward'] = stats['unit_reward'] * unit_ratio
+            order['credit_info']['side_ratio'] = stats['side_ratio']
+            order['credit_info']['side_reward'] = order['credit_info'][
+                'calculated_unit_reward'] * stats['side_ratio']
+            order['credit_info']['rank_total_liquidity'] = stats['rank_total']
+            order['credit_info']['rank_reward'] = stats['rank_reward']
+            order['credit_info']['rank_ratio'] = stats['rank_ratio']
         output_orders.append(order)
     return {'success': True, 'message': output_orders, 'server_time': int(time.time())}
 

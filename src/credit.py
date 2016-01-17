@@ -68,23 +68,7 @@ def credit(app, rpc, log):
     active_users = []
 
     # de-duplicate the orders
-    deduped_orders = []
-    known_orders = []
-    for order in all_orders:
-        # hash the order to avoid duplicates
-        # order_id, order_amount, side, exchange, unit
-        order_hash = '{}.{}.{}.{}.{}'.format(order[3], order[4],
-                                             order[5], order[6],
-                                             order[7])
-        # check if the order exists in our known orders list
-        if order_hash in known_orders:
-            # if this is a duplicate order, mark it as such in the database
-            db.execute("UPDATE orders SET credited=%s WHERE id=%s", (-1, order[0]))
-            continue
-        # add the hash, as it is known
-        known_orders.append(order_hash)
-        # save the full order in our deduped list
-        deduped_orders.append(order)
+    deduped_orders = deduplicate_orders(all_orders, db)
 
     # calculate the liquidity totals
     totals = get_total_liquidity(app, deduped_orders)
@@ -115,13 +99,63 @@ def credit(app, rpc, log):
         db.execute("UPDATE orders SET credited=%s WHERE id=%s", (1, order[0]))
 
     # write the stats to the database
-    db.execute("INSERT INTO stats (time,meta,totals,rewards) VALUES (%s,%s,%s,%s)",
-               (credit_time, json.dumps(meta), json.dumps(totals), json.dumps(rewards)))
+    stats_config = {}
+    for ex in app.config['exchanges']:
+        stats_config[ex] = {}
+        for unit in app.config['{}.units'.format(ex)]:
+            stats_config[ex][unit] = {'target': app.config['{}.{}.target'.format(ex,
+                                                                                 unit)],
+                                      'reward': app.config['{}.{}.reward'.format(ex,
+                                                                                 unit)]}
+            for side in ['ask', 'bid']:
+                stats_config[ex][unit][side] = {'ratio': app.config['{}.{}.{'
+                                                                    '}.ratio'.format(
+                                                                     ex, unit, side)]}
+                for rank in app.config['{}.{}.{}.ranks'.format(ex, unit, side)]:
+                    stats_config[ex][unit][side][rank] = {'ratio':
+                                                          app.config['{}.{}.{}.{}.'
+                                                                     'ratio'.format(ex,
+                                                                                    unit,
+                                                                                    side,
+                                                                                    rank)]
+                                                          }
+
+    db.execute("INSERT INTO stats (time,meta,totals,rewards,config) VALUES (%s,%s,%s,"
+               "%s,%s)",
+               (credit_time, json.dumps(meta), json.dumps(totals), json.dumps(rewards),
+                json.dumps(stats_config)))
     conn.commit()
     conn.close()
     if log_output:
         log.info('End credit')
     return
+
+
+def deduplicate_orders(all_orders, db):
+    """
+    for a list of orders, return the deduplicated list of orders
+    :param all_orders:
+    :param db:
+    :return:
+    """
+    deduped_orders = []
+    known_orders = []
+    for order in all_orders:
+        # hash the order to avoid duplicates
+        # order_id, order_amount, side, exchange, unit
+        order_hash = '{}.{}.{}.{}.{}'.format(order[3], order[4],
+                                             order[5], order[6],
+                                             order[7])
+        # check if the order exists in our known orders list
+        if order_hash in known_orders:
+            # if this is a duplicate order, mark it as such in the database
+            db.execute("UPDATE orders SET credited=%s WHERE id=%s", (-1, order[0]))
+            continue
+        # add the hash, as it is known
+        known_orders.append(order_hash)
+        # save the full order in our deduped list
+        deduped_orders.append(order)
+    return deduped_orders
 
 
 def get_total_liquidity(app, orders):
