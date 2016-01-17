@@ -1,8 +1,8 @@
+import json
 import time
 from threading import Timer, Thread
 
 import database
-import stats
 from bitcoinrpc.authproxy import JSONRPCException
 from src import config
 
@@ -20,10 +20,13 @@ It also uses that data to submit liquidity info back to Nu
 """
 
 
-def credit(app, rpc, log, run_stats=True):
+def credit(app, rpc, log):
     """
     This runs every minute and calculates the total liquidity on order (rank 1) and
-    each users proportion of it
+    each users proportion of it.
+    :param log:
+    :param rpc:
+    :param app:
     :return:
     """
     # Set the timer going again
@@ -52,6 +55,18 @@ def credit(app, rpc, log, run_stats=True):
     # store the credit time in the info table
     db.execute("UPDATE info SET value=%s WHERE key=%s", (credit_time, 'last_credit_time'))
 
+    # set up for some stats
+    # build the blank meta stats object
+    meta = {'last-credit-time': credit_time,
+            'number-of-users-active': 0,
+            'number-of-orders': 0}
+    db.execute("SELECT value FROM info WHERE key=%s", ('next_payout_time',))
+    meta['next_payout_time'] = int(db.fetchone()[0])
+    db.execute("SELECT COUNT(id) FROM users")
+    meta['number-of-users'] = int(db.fetchone()[0])
+    # create a list of active users
+    active_users = []
+
     # de-duplicate the orders
     deduped_orders = []
     known_orders = []
@@ -64,115 +79,165 @@ def credit(app, rpc, log, run_stats=True):
         # check if the order exists in our known orders list
         if order_hash in known_orders:
             # if this is a duplicate order, mark it as such in the database
-            db.execute("UPDATE orders SET credited=-1 WHERE id=%s", (order[0],))
+            db.execute("UPDATE orders SET credited=%s WHERE id=%s", (-1, order[0]))
             continue
-        # add it now as it is known
+        # add the hash, as it is known
         known_orders.append(order_hash)
         # save the full order in our deduped list
         deduped_orders.append(order)
 
-    # get the total amount of liquidity by rank
-    total = get_total_liquidity(app, deduped_orders)
+    # calculate the liquidity totals
+    totals = get_total_liquidity(app, deduped_orders)
 
     # We've calculated the totals so submit them as liquidity_info
-    Thread(target=liquidity_info, kwargs={'rpc': rpc, 'total': total, 'log': log})
+    Thread(target=liquidity_info, kwargs={'rpc': rpc, 'totals': totals, 'log': log})
+
+    # calculate the round rewards based on percentages of target and ratios of side and
+    # rank
+    rewards = calculate_reward(app, totals)
 
     # parse the orders
     for order in deduped_orders:
+        # save some stats
+        meta['number-of-orders'] += 1
+        if order[1] not in active_users:
+            meta['number-of-users-active'] += 1
+            active_users.append(order[1])
         # calculate the details
-        total_liquidity, percentage, reward = calculate_reward(app, order, total)
+        reward, percentage = calculate_order_reward(app, order, totals, rewards)
         # and save to the database
         db.execute("INSERT INTO credits (time,key,exchange,unit,rank,side,order_id,"
-                   "provided,total,percentage,reward,paid) VALUES "
-                   "(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                   "provided,percentage,reward,paid) VALUES "
+                   "(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                    (credit_time, order[1], order[8], order[9], order[2], order[5],
-                    order[0], order[4], total_liquidity, (percentage * 100), reward, 0))
+                    order[0], order[4], (percentage * 100), reward, 0))
         # update the original order too to indicate that it has been credited
         db.execute("UPDATE orders SET credited=%s WHERE id=%s", (1, order[0]))
+
+    # write the stats to the database
+    db.execute("INSERT INTO stats (time,meta,totals,rewards) VALUES (%s,%s,%s,%s)",
+               (credit_time, json.dumps(meta), json.dumps(totals), json.dumps(rewards)))
     conn.commit()
     conn.close()
     if log_output:
         log.info('End credit')
-    if run_stats:
-        stats.stats(app, log, log_output)
     return
 
 
 def get_total_liquidity(app, orders):
     """
-    Given a list of orders from the database, calculate the total amount of liquidity
-    for the given rank
+    Given a list of orders from the database, calculate the liquidity totals for unit
+    side and rank
+    :param app:
     :param orders:
-    :param rank:
     :return:
     """
     # build the liquidity object
-    liquidity = {'rank_1': {}, 'rank_2': {}}
-    for rank in ['rank_1', 'rank_2']:
-        for exchange in app.config['exchanges']:
-            if exchange not in liquidity[rank]:
-                liquidity[rank][exchange] = {}
-            for unit in app.config['{}.units'.format(exchange)]:
-                if unit not in liquidity[rank][exchange]:
-                    liquidity[rank][exchange][unit] = {}
-                for side in ['ask', 'bid']:
-                    liquidity[rank][exchange][unit][side] = 0.00
+    liquidity = {}
+    for exchange in app.config['exchanges']:
+        if exchange not in liquidity:
+            liquidity[exchange] = {}
+        for unit in app.config['{}.units'.format(exchange)]:
+            if unit not in liquidity[exchange]:
+                liquidity[exchange][unit] = {}
+            liquidity[exchange][unit]['total'] = 0.00
+            for side in ['ask', 'bid']:
+                liquidity[exchange][unit][side] = {'total': 0.00}
+                for rank in app.config['{}.{}.{}.ranks'.format(exchange, unit, side)]:
+                    liquidity[exchange][unit][side][rank] = 0.00
+
     # parse the orders and update the liquidity object accordingly
     for order in orders:
-        # order schema
-        # id, user, rank, order_id, order_amount, side, exchange, unit, credited
-        liquidity[order[2]][order[8]][order[9]][order[5]] += float(order[4])
+        # exchange.unit.total
+        liquidity[order[8]][order[9]]['total'] += float(order[4])
+        # exchange.unit.side.total
+        liquidity[order[8]][order[9]][order[5]]['total'] += float(order[4])
+        # exchange.unit.side.rank
+        liquidity[order[8]][order[9]][order[5]][order[2]] += float(order[4])
+
     return liquidity
 
 
-def calculate_reward(app, order, total):
+def calculate_reward(app, totals):
+    """
+    Calculate the reward for the exchange/pair/side/rank based on percentage of liquidity
+    target filled and ratio of sides/ranks
+    :param app:
+    :param totals:
+    :return:
+    """
+    # build the blank object
+    rewards = {}
+    for exchange in app.config['exchanges']:
+        if exchange not in rewards:
+            rewards[exchange] = {}
+        for unit in app.config['{}.units'.format(exchange)]:
+            if unit not in rewards[exchange]:
+                rewards[exchange][unit] = {}
+            for side in ['ask', 'bid']:
+                rewards[exchange][unit][side] = {}
+                # reward depends on the percentage of the target liquidity being provided
+                total_liq = float(totals[exchange][unit]['total'])
+                target_liq = float(app.config['{}.{}.target'.format(exchange, unit)])
+                target_percentage = total_liq / target_liq
+                if target_percentage > 1.00:
+                    target_percentage = 1.00
+                for rank in app.config['{}.{}.{}.ranks'.format(exchange, unit, side)]:
+                    # reward is split by the rank and side ratios
+                    reward = float(app.config['{}.{}.reward'.format(exchange, unit)])
+                    side_ratio = float(app.config['{}.{}.{}.ratio'.format(exchange,
+                                                                          unit,
+                                                                          side)])
+                    rank_ratio = float(app.config['{}.{}.{}.{}.ratio'.format(exchange,
+                                                                             unit,
+                                                                             side,
+                                                                             rank)])
+                    rewards[exchange][unit][side][rank] = round(((reward * side_ratio) *
+                                                                rank_ratio) *
+                                                                target_percentage, 8)
+    return rewards
+
+
+def calculate_order_reward(app, order, totals, rewards):
     """
     Calculate the rewards for the given order
     :param app: The application object for accessing app.config
     :param order: an order to use for the calculation
-    :param total: the total liquidity dict
+    :param totals: the total liquidity dict
+    :param rewards: the rewards dict
     :return:
     """
-    # order schema
-    # id, user, rank, order_id, order_amount, side, exchange, unit, credited
-    # amount provided = order_amount
     provided = float(order[4])
-    # total liquidity = total[rank][exchange][unit][side]
-    total_liquidity = float(total[order[2]][order[8]][order[9]][order[5]])
+    # total liquidity = total[exchange][unit][side][rank]
+    total_liquidity = float(totals[order[8]][order[9]][order[5]][order[2]])
     # Calculate the percentage of the total
     percentage = (provided / total_liquidity) if total_liquidity > 0.00 else 0.00
-    # Use the percentage to calculate the reward for this round
-    # reward can be found in app.config['exchange.unit.side.rank.reward']
-    reward = percentage * app.config['{}.{}.{}.{}.reward'.format(order[8], order[9],
-                                                                 order[5], order[2])]
-    return total_liquidity, percentage, reward
+    # calculate the reward for this order
+    reward = percentage * float(rewards[order[8]][order[9]][order[5]][order[2]])
+    return reward, percentage
 
 
-def liquidity_info(app, rpc, log, total):
+def liquidity_info(app, rpc, log, totals):
     """
     Calculate the current amount of liquidity in ranks 1 and 2 and submit them to Nu
+    :param totals:
+    :param log:
+    :param rpc:
+    :param app:
     :return:
     """
-    for exchange in total['rank_1']:
-        for unit in total['rank_1'][exchange]:
-            identifier = "1.1:{}:{}:{}".format('NBT{}'.format(unit.upper()),
-                                               exchange,
-                                               app.config['pool.name'])
+    for exchange in app.config['exchanges']:
+        for unit in app.config['{}.units'.format(exchange)]:
+            identifier = "1:{}:{}:{}".format('NBT{}'.format(unit.upper()),
+                                             exchange,
+                                             app.config['pool.name'])
             try:
-                rpc.liquidityinfo('B', total['rank_1'][exchange][unit]['bid'],
-                                  total['rank_1'][exchange][unit]['ask'],
+                rpc.liquidityinfo('B', totals[exchange][unit]['bid'],
+                                  totals[exchange][unit]['ask'],
                                   app.config['pool.grant_address'], identifier)
             except JSONRPCException as e:
-                log.error('Sending rank 1 liquidity info failed: {}'.format(e.message))
-
-    for exchange in total['rank_2']:
-        for unit in total['rank_2'][exchange]:
-            identifier = "1.2:{}:{}:{}".format('NBT{}'.format(unit.upper()),
-                                               exchange,
-                                               app.config['pool.name'])
-            try:
-                rpc.liquidityinfo('B', total['rank_2'][exchange][unit]['bid'],
-                                  total['rank_2'][exchange][unit]['ask'],
-                                  app.config['pool.grant_address'], identifier)
-            except JSONRPCException as e:
-                log.error('Sending rank 2 liquidity info failed: {}'.format(e.message))
+                log.error('Sending liquidity info failed: {}'.format(e.message))
+            log.info('sent liquidity info for %s: ask=%s, bid=%s',
+                     identifier,
+                     totals[exchange][unit]['ask'],
+                     totals[exchange][unit]['bid'])
