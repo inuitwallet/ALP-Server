@@ -246,7 +246,7 @@ class PriceFetcher(object):
         try:
             response = price_socket.recv_json()
         except ValueError as e:
-            self.log.error('unable to start price streamer: %s', e.message)
+            self.log.error('unable to start price streamer: %s', e)
             price_socket.close()
             return
         # if we got a different response to the one we were expecting
