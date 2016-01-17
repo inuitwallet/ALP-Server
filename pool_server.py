@@ -106,7 +106,7 @@ for unit in app.config['units']:
 
 # Set the timer for credits
 log.info('running credit timer')
-credit_timer = Timer(10.0, credit.credit,
+credit_timer = Timer(60.0, credit.credit,
                      kwargs={'app': app, 'rpc': rpc, 'log': log})
 credit_timer.name = 'credit_timer'
 credit_timer.daemon = True
@@ -168,6 +168,7 @@ def register(db):
         address - Valid NBT payout address
         exchange - supported exchange
         unit - supported currency
+    :param db:
     :return:
     """
     log.info('/register')
@@ -241,6 +242,7 @@ def liquidity(db):
         sign - result of signing req with API private key
         exchange - valid, supported exchange
         unit - valid, supported unit
+    :param db:
     :return:
     """
     log.info('/liquidity')
@@ -301,25 +303,25 @@ def liquidity(db):
     # clear existing orders for the user
     log.info('clear existing orders for user %s', user)
     db.execute("DELETE FROM orders WHERE key=%s AND exchange=%s AND unit=%s", (user,
-                                                                             exchange,
-                                                                             unit))
+                                                                               exchange,
+                                                                               unit))
     # Loop through the orders
     for order in orders:
         # Calculate how the order price is from the known good price
         order_deviation = 1.00 - (min(float(order['price']), float(price)) /
                                   max(float(order['price']), float(price)))
-        # Using the server tolerance determine if the order is rank 1 or rank 2
-        # Only rank 1 is compensated by the server
-        rank = 'rank_2'
-        if float(order_deviation) <= float(app.config['{}.{}.{}.'
-                                                      'tolerance'.format(exchange, unit,
-                                                                         order['side'])]):
-            rank = 'rank_1'
+        # Use the rank tolerances to determine the rank of the order
+        order_rank = ''
+        for rank in app.config['{}.{}.{}.ranks'.format(exchange, unit, order['side'])]:
+            if float(order_deviation) <= float(app.config['{}.{}.{}.{}.tolerance'.format(
+                    exchange, unit, order['side'], rank)]):
+                order_rank = rank
+                break
         # save the order details
         db.execute("INSERT INTO orders (key,rank,order_id,order_amount,side,order_price,"
                    "server_price,exchange,unit,deviation,credited) VALUES "
                    "(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
-                   (user, rank, str(order['id']), float(order['amount']),
+                   (user, order_rank, str(order['id']), float(order['amount']),
                     str(order['side']), float(order['price']), float(price), exchange,
                     unit, float(order_deviation), 0))
     log.info('user %s orders saved for validation', user)
@@ -334,51 +336,25 @@ def exchanges():
     """
     log.info('/exchanges')
     data = {}
-    for exchange in app.config['exchanges']:
-        if exchange not in data:
-            data[exchange] = {}
-        for unit in app.config['{}.units'.format(exchange)]:
-            data[exchange][unit] = {'ask': {'tolerance': app.config['{}.{}.ask.'
-                                                                    'tolerance'
-                                                                    ''.format(exchange,
-                                                                              unit)],
-                                            'rank_1': {
-                                                'reward': app.config['{}.{}.ask.{}'
-                                                                     '.reward'
-                                                                     ''.format(exchange,
-                                                                               unit,
-                                                                               'rank_1')]
-                                                },
-                                            'rank_2': {
-                                                'reward': app.config['{}.{}.ask.{}'
-                                                                     '.reward'
-                                                                     ''.format(exchange,
-                                                                               unit,
-                                                                               'rank_2')]
-                                                }
-                                            },
-
-
-                                    'bid': {'tolerance': app.config['{}.{}.bid.'
-                                                                    'tolerance'
-                                                                    ''.format(exchange,
-                                                                              unit)],
-                                            'rank_1': {
-                                                'reward': app.config['{}.{}.bid.{}'
-                                                                     '.reward'
-                                                                     ''.format(exchange,
-                                                                               unit,
-                                                                               'rank_1')]
-                                                },
-                                            'rank_2': {
-                                                'reward': app.config['{}.{}.bid.{}'
-                                                                     '.reward'
-                                                                     ''.format(exchange,
-                                                                               unit,
-                                                                               'rank_2')]
-                                                }
-                                            }
-                                    }
+    for ex in app.config['exchanges']:
+        if ex not in data:
+            data[ex] = {}
+        for u in app.config['{}.units'.format(ex)]:
+            data[ex][u] = {
+                'reward': app.config['{}.{}.reward'.format(ex, u)],
+                'target': app.config['{}.{}.target'.format(ex, u)]
+            }
+            for side in ['ask', 'bid']:
+                data[ex][u][side] = {'ratio': app.config['{}.{}.ask.ratio'.format(ex, u)]}
+                for rank in app.config['{}.{}.{}.ranks'.format(ex, u, side)]:
+                    data[ex][u][side][rank] = {
+                        'ratio': app.config['{}.{}.{}.{}.ratio'.format(ex, u,
+                                                                       side, rank)],
+                        'tolerance': app.config['{}.{}.{}.{}.tolerance'.format(ex,
+                                                                               u,
+                                                                               side,
+                                                                               rank)]
+                    }
     return data
 
 
