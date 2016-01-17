@@ -1,6 +1,7 @@
 [pool]
 name=pool
 grant_address=Bxxxxxxxxxxxxxxxxx
+minimum_payout=1
 
 [rpc]
 user=nu
