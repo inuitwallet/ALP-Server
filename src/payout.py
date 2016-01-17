@@ -12,6 +12,9 @@ __author__ = 'sammoth'
 def pay(app, rpc, log):
     """
     Pay all users who have a balance greater than the minimum payout
+    :param log:
+    :param rpc:
+    :param app:
     :return:
     """
     log.info('payout started')
@@ -48,13 +51,13 @@ def pay(app, rpc, log):
     except JSONRPCException as e:
         log.error('Payout failed - %s: \'%s\'', e.message, json.dumps(user_payouts))
         timer_time = 120.0
-    except socket.error as e:
+    except socket.error:
         log.error('Payout failed - no connection with nud: \'%s\'', json.dumps(
                 user_payouts))
         timer_time = 120.0
     # reset timer
     payout_timer = Timer(timer_time, pay,
-                         kwargs={'rpc': rpc, 'log': log})
+                         kwargs={'app': app, 'rpc': rpc, 'log': log})
     payout_timer.name = 'payout_timer'
     payout_timer.daemon = True
     payout_timer.start()
