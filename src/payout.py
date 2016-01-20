@@ -52,7 +52,7 @@ def pay(app, rpc, log):
     except JSONRPCException as e:
         log.error('Payout failed - %s: \'%s\'', e.message, json.dumps(user_payouts))
         timer_time = 120.0
-    except (socket.error, CannotSendRequest):
+    except (socket.error, CannotSendRequest, ValueError):
         log.error('Payout failed - no connection with nud: \'%s\'', json.dumps(
                 user_payouts))
         timer_time = 120.0
