@@ -354,13 +354,17 @@ def exchanges():
             for side in ['ask', 'bid']:
                 data[ex][u][side] = {'ratio': app.config['{}.{}.ask.ratio'.format(ex, u)]}
                 for rank in app.config['{}.{}.{}.ranks'.format(ex, u, side)]:
+                    try:
+                        tolerance = app.config['{}.{}.{}.{}.tolerance'.format(ex,
+                                                                              u,
+                                                                              side,
+                                                                              rank)]
+                    except KeyError:
+                        tolerance = 1.00
                     data[ex][u][side][rank] = {
                         'ratio': app.config['{}.{}.{}.{}.ratio'.format(ex, u,
                                                                        side, rank)],
-                        'tolerance': app.config['{}.{}.{}.{}.tolerance'.format(ex,
-                                                                               u,
-                                                                               side,
-                                                                               rank)]
+                        'tolerance': tolerance
                     }
     return data
 
