@@ -61,7 +61,7 @@ def credit(app, rpc, log):
             'number-of-users-active': 0,
             'number-of-orders': 0}
     db.execute("SELECT value FROM info WHERE key=%s", ('next_payout_time',))
-    meta['next_payout_time'] = int(db.fetchone()[0])
+    meta['next-payout-time'] = int(db.fetchone()[0])
     db.execute("SELECT COUNT(id) FROM users")
     meta['number-of-users'] = int(db.fetchone()[0])
     # create a list of active users
