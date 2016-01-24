@@ -291,7 +291,7 @@ def liquidity(db):
     # use the submitted data to request the users orders
     valid = wrappers[exchange].validate_request(user=user, unit=unit, req=req, sign=sign)
     if valid['message'] != 'success':
-        log.error('%s: %s', exchange, valid['message'])
+        log.error('%s: %s -> %s', exchange, valid['message'], req)
         return {'success': valid['success'], 'message': valid['message']}
     orders = valid['orders']
     # get the price from the price feed
