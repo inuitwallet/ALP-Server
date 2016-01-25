@@ -101,3 +101,6 @@ GET /<user>/stats
 
 ---
 ###Stats
+
+###Requirements
+libffi-dev
