@@ -1,6 +1,5 @@
 import json
 import logging
-import os
 from webtest import TestApp
 import sys
 sys.path.append('../')
@@ -19,7 +18,7 @@ app = TestApp(pool_server.app)
 headers = {'Content-Type': 'application/json'}
 
 ########
-# # Root
+#  Root
 ########
 
 log.debug('test root url')
@@ -27,7 +26,7 @@ resp = app.get('/')
 assert resp.json == {'success': True, 'message': 'ALP Server is operational'}
 
 ########
-# # Register
+#  Register
 ########
 
 log.debug('test register without correct headers')
@@ -114,7 +113,7 @@ resp = app.post('/register', headers=headers, params=json.dumps(data))
 assert resp.json == {'success': False, 'message': 'user is already registered'}
 
 #######
-# # Liquidity
+#  Liquidity
 #######
 
 log.debug('test liquidity without correct headers')
@@ -176,3 +175,26 @@ log.debug('test liquidity complete')
 data = test_data.copy()
 resp = app.post('/liquidity', headers=headers, params=json.dumps(data))
 assert resp.json == {'success': True, 'message': 'orders saved for validation'}
+
+
+########
+#  Exchanges
+########
+
+log.debug('test exchanges stats')
+resp = app.get('/exchanges')
+assert resp.json == {u'test_exchange': {u'ppc': {
+    u'ask': {u'ratio': 0.6,
+             u'rank_1': {u'ratio': 1.0, u'tolerance': 0.0105},
+             u'rank_2': {u'ratio': 0.0, u'tolerance': 0.9895}},
+    u'bid': {u'ratio': 0.6,
+             u'rank_1': {u'ratio': 0.8, u'tolerance': 0.0105},
+             u'rank_2': {u'ratio': 0.2, u'tolerance': 0.9895}},
+    u'reward': 0.025, u'target': 1500}, u'btc': {
+    u'ask': {u'ratio': 0.5,
+             u'rank_1': {u'ratio': 1.0, u'tolerance': 0.0105},
+             u'rank_2': {u'ratio': 0.0, u'tolerance': 0.9895}},
+    u'bid': {u'ratio': 0.5,
+             u'rank_1': {u'ratio': 1.0, u'tolerance': 0.0105},
+             u'rank_2': {u'ratio': 0.0, u'tolerance': 0.9895}},
+    u'reward': 0.025, u'target': 2500}}}
