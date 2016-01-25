@@ -27,8 +27,6 @@ def load(app, log, log_output):
             exchange_dict = json.load(exchange)
             app.config.load_dict(exchange_dict)
 
-            print exchange_dict
-
             # we've loaded the raw configs using the bottle helpers
             # now we need to parse out some lists from the exchange data
             for ex in exchange_dict:
