@@ -222,7 +222,7 @@ def register(db):
                "AND unit=%s;", (user, address, exchange, unit))
     check = db.fetchone()
     if check:
-        log.warn('user is already registered')
+        log.warn('user %s is already registered', user)
         return {'success': False, 'message': 'user is already registered'}
     db.execute("INSERT INTO users (key,address,exchange,unit) VALUES (%s,%s,%s,"
                "%s)", (user, address, exchange, unit))
@@ -291,13 +291,13 @@ def liquidity(db):
     # use the submitted data to request the users orders
     valid = wrappers[exchange].validate_request(user=user, unit=unit, req=req, sign=sign)
     if valid['message'] != 'success':
-        log.error('%s: %s -> %s', exchange, valid['message'], req)
+        log.error('%s: %s -> %s', exchange, valid['message'], user)
         return {'success': valid['success'], 'message': valid['message']}
     orders = valid['orders']
     # get the price from the price feed
     price = pf[unit].price
     if price is None:
-        log.error('unable to fetch current price for %s', unit)
+        log.error('unable to fetch current price for %s -> %s', unit, user)
         return {'success': False, 'message': 'unable to fetch current price for {}'.
                 format(unit)}
     # clear existing orders for the user
