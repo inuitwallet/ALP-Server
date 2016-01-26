@@ -24,7 +24,6 @@ class TestCredits(unittest.TestCase):
         self.log.addHandler(stream)
         # set us up a bottle application with correct config
         self.app = bottle.Bottle()
-        self.app.config.load_config('config/pool_config')
         config.load(self.app, self.log, log_output=False)
         # build the database if it doesn't exist
         database.build(self.app, self.log, log_output=False)
@@ -40,7 +39,7 @@ class TestCredits(unittest.TestCase):
         test_order_number = 1
         for i in xrange(0, 5):
             for unit in ['btc', 'ppc']:
-                for side in ['ask','bid']:
+                for side in ['ask', 'bid']:
                     for rank in ['rank_1', 'rank_2']:
                         c.execute("INSERT INTO orders (key,rank,order_id,order_amount,"
                                   "side,exchange,unit,credited) VALUES "
