@@ -39,23 +39,27 @@ def pay(app, rpc, log):
             del(user_payouts[address])
             continue
         user_payouts[address] = round(float(user_payouts[address]), 6)
-    # SendMany from nud. Report any error to log output
-    try:
-        rpc.sendmany("", "'{}'".format(json.dumps(user_payouts).replace(' ', '')))
-        log.info('payout successful: \'%s\'', json.dumps(user_payouts))
-        # mark credits to paid addresses as paid
-        for reward in rewards:
-            if reward[3] in user_payouts:
-                db.execute('UPDATE credits SET paid=1 WHERE id=%s', (reward[0],))
-        # set the timer for the next payout
+    if not user_payouts:
+        log.info('no-one to payout to')
         timer_time = 86400.0
-    except JSONRPCException as e:
-        log.error('Payout failed - %s: \'%s\'', e.message, json.dumps(user_payouts))
-        timer_time = 120.0
-    except (socket.error, CannotSendRequest, ValueError):
-        log.error('Payout failed - no connection with nud: \'%s\'', json.dumps(
-                user_payouts))
-        timer_time = 120.0
+    else:
+        # SendMany from nud. Report any error to log output
+        try:
+            rpc.sendmany("", "'{}'".format(json.dumps(user_payouts).replace(' ', '')))
+            log.info('payout successful: \'%s\'', json.dumps(user_payouts))
+            # mark credits to paid addresses as paid
+            for reward in rewards:
+                if reward[3] in user_payouts:
+                    db.execute('UPDATE credits SET paid=1 WHERE id=%s', (reward[0],))
+            # set the timer for the next payout
+            timer_time = 86400.0
+        except JSONRPCException as e:
+            log.error('Payout failed - %s: \'%s\'', e.message, json.dumps(user_payouts))
+            timer_time = 120.0
+        except (socket.error, CannotSendRequest, ValueError):
+            log.error('Payout failed - no connection with nud: \'%s\'', json.dumps(
+                    user_payouts))
+            timer_time = 120.0
     # reset timer
     payout_timer = Timer(timer_time, pay,
                          kwargs={'app': app, 'rpc': rpc, 'log': log})
