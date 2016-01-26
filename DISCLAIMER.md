@@ -8,3 +8,4 @@ Neither the developer of this software, nor the liquidity operation on NuPool.ne
 
 Also note, that the developer of this software does not participate in any liquidity operation that uses this software. 
 No claims, in any way, can be made against the developer of this software package.
+  
