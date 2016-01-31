@@ -1,1 +1,1 @@
-web: gunicorn pool_server:app --log-file - --preload
+web: mv heroku_config config && gunicorn pool_server:app --log-file - --preload
