@@ -5,7 +5,7 @@ from os.path import isfile, join
 __author__ = 'sammoth'
 
 
-def load(app, log, log_output):
+def load(app, log, config_dir, log_output):
     """
     Helper method to load pool config
     :param log_output:
@@ -15,15 +15,15 @@ def load(app, log, log_output):
     """
     if log_output:
         log.info('load pool config')
-    app.config.load_config(join('config', 'pool_config'))
+    app.config.load_config(join(config_dir, 'pool_config'))
     if log_output:
         log.info('load exchanges config(s)')
     app.config['exchanges'] = []
     app.config['units'] = []
-    for exchange_file in listdir(join('config', 'exchanges')):
-        if not isfile(join('config', 'exchanges', exchange_file)):
+    for exchange_file in listdir(join(config_dir, 'exchanges')):
+        if not isfile(join(config_dir, 'exchanges', exchange_file)):
             continue
-        with open(join('config', 'exchanges', exchange_file)) as exchange:
+        with open(join(config_dir, 'exchanges', exchange_file)) as exchange:
             exchange_dict = json.load(exchange)
             app.config.load_dict(exchange_dict)
 
