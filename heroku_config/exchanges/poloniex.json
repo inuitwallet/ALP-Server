@@ -1,5 +1,5 @@
 {
-  "bter": {
+  "poloniex": {
     "btc": {
       "reward": 0.025,
       "target": 1250,

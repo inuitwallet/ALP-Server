@@ -1,5 +1,5 @@
 [pool]
-name=pool
+name=heroku_test_pool
 grant_address=Bxxxxxxxxxxxxxxxxx
 minimum_payout=1
 
