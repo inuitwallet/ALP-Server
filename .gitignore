@@ -46,7 +46,7 @@ test_client.py
 test.py
 *_exchange_config
 test_*.py
-config/
+/config
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
