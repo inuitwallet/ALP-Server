@@ -183,18 +183,58 @@ assert resp.json == {'success': True, 'message': 'orders saved for validation'}
 
 log.debug('test exchanges stats')
 resp = app.get('/exchanges')
-assert resp.json == {u'test_exchange': {u'ppc': {
-    u'ask': {u'ratio': 0.6,
-             u'rank_1': {u'ratio': 1.0, u'tolerance': 0.0105},
-             u'rank_2': {u'ratio': 0.0, u'tolerance': 0.9895}},
-    u'bid': {u'ratio': 0.6,
-             u'rank_1': {u'ratio': 0.8, u'tolerance': 0.0105},
-             u'rank_2': {u'ratio': 0.2, u'tolerance': 0.9895}},
-    u'reward': 0.025, u'target': 1500}, u'btc': {
-    u'ask': {u'ratio': 0.5,
-             u'rank_1': {u'ratio': 1.0, u'tolerance': 0.0105},
-             u'rank_2': {u'ratio': 0.0, u'tolerance': 0.9895}},
-    u'bid': {u'ratio': 0.5,
-             u'rank_1': {u'ratio': 1.0, u'tolerance': 0.0105},
-             u'rank_2': {u'ratio': 0.0, u'tolerance': 0.9895}},
-    u'reward': 0.025, u'target': 2500}}}
+assert resp.json == {
+    u'test_exchange': {
+        u'ppc': {
+            u'ask': {
+                u'ratio': 0.6,
+                u'rank_1': {
+                    u'ratio': 1.0,
+                    u'tolerance': 0.0105
+                },
+                u'rank_2': {
+                    u'ratio': 0.0,
+                    u'tolerance': 1.0}
+            },
+            u'bid': {
+                u'ratio': 0.6,
+                u'rank_1': {
+                    u'ratio': 0.8,
+                    u'tolerance': 0.0105
+                },
+                u'rank_2': {
+                    u'ratio': 0.2,
+                    u'tolerance': 1.0
+                }
+            },
+            u'reward': 0.025,
+            u'target': 1500
+        },
+        u'btc': {
+            u'ask': {
+                u'ratio': 0.5,
+                u'rank_1': {
+                    u'ratio': 1.0,
+                    u'tolerance': 0.0105
+                },
+                u'rank_2': {
+                    u'ratio': 0.0,
+                    u'tolerance': 1.0
+                }
+            },
+            u'bid': {
+                u'ratio': 0.5,
+                u'rank_1': {
+                    u'ratio': 1.0,
+                    u'tolerance': 0.0105
+                },
+                u'rank_2': {
+                    u'ratio': 0.0,
+                    u'tolerance': 1.0
+                }
+            },
+            u'reward': 0.025,
+            u'target': 2500
+        }
+    }
+}
