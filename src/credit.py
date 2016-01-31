@@ -39,7 +39,7 @@ def credit(app, rpc, log):
     log_output = False
 
     # reload the config
-    config.load(app, log, log_output)
+    config.load(app, log, 'config', log_output)
 
     # calculate the credit time
     credit_time = int(time.time())
