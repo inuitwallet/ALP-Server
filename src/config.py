@@ -1,3 +1,4 @@
+import ConfigParser
 import json
 from os import listdir
 from os.path import isfile, join
@@ -8,11 +9,15 @@ __author__ = 'sammoth'
 def load(app, log, config_dir, log_output):
     """
     Helper method to load pool config
+    :param config_dir:
     :param log_output:
     :param app:
     :param log:
     :return:
     """
+    pool_check = check_pool_config(join(config_dir, 'pool_config'))
+    if not pool_check[0]:
+        log.error('Pool config check failed: {}'.format(pool_check[1]))
     if log_output:
         log.info('load pool config')
     app.config.load_config(join(config_dir, 'pool_config'))
@@ -53,3 +58,38 @@ def load(app, log, config_dir, log_output):
                                                                    unit,
                                                                    side)].append(rank)
         exchange.close()
+
+
+def check_pool_config(config_file):
+    """
+    Check that the pool config file contains the correct elements
+    :param config_file:
+    :return:
+    """
+    config = ConfigParser.ConfigParser()
+    config.read(config_file)
+    try:
+        config.get('pool', 'name')
+        config.get('pool', 'grant_address')
+        config.get('pool', 'minimum_payout')
+        config.get('rpc', 'user')
+        config.get('rpc', 'pass')
+        config.get('rpc', 'host')
+        config.get('rpc', 'port')
+        config.get('db', 'name')
+        config.get('db', 'user')
+        config.get('db', 'pass')
+        config.get('db', 'host')
+        config.get('db', 'port')
+    except (ConfigParser.NoSectionError, ConfigParser.NoOptionError) as e:
+        return False, e.message
+    return True, 'All complete'
+
+
+def check_exchange_config(config_file):
+    """
+    Check that each exchange config file is  valid
+    :param config_file:
+    """
+    return False
+
