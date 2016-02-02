@@ -45,7 +45,6 @@ pool.db
 test_client.py
 test.py
 *_exchange_config
-test_*.py
 /config
 
 # PyInstaller
