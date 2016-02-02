@@ -43,6 +43,7 @@ python/nubot/res/frozen-funds/*
 
 pool.db
 test_client.py
+test_bter.py
 test.py
 *_exchange_config
 /config
