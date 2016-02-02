@@ -20,7 +20,6 @@ def build(app, log, log_output=True):
         log.info('configure database schema')
     c.execute("CREATE TABLE IF NOT EXISTS users (id SERIAL, key TEXT, address "
               "TEXT, exchange TEXT, unit TEXT)")
-    c.execute("DELETE FROM users WHERE key='TEST_USER_1'")
     c.execute("CREATE TABLE IF NOT EXISTS orders (id SERIAL, key TEXT, rank TEXT, "
               "order_id TEXT, order_amount FLOAT8, side TEXT, order_price FLOAT8, "
               "server_price FLOAT8, exchange TEXT, unit TEXT, deviation FLOAT8, "

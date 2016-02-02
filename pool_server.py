@@ -44,7 +44,7 @@ log.addHandler(rotating_file)
 log.addHandler(stream)
 
 # Load the config
-config.load(app, log, 'config', log_output=True)
+config.load(app, log, os.getenv("CONFIG_DIR", 'config'), log_output=True)
 
 # Install the Postgres plugin
 if os.getenv("DATABASE_URL", None) is not None:

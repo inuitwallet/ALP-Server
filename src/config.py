@@ -15,6 +15,7 @@ def load(app, log, config_dir, log_output):
     :param log:
     :return:
     """
+    app.config['config_dir'] = config_dir
     pool_check = check_pool_config(join(config_dir, 'pool_config'))
     if not pool_check[0]:
         log.error('Pool config check failed: {}'.format(pool_check[1]))
@@ -91,5 +92,6 @@ def check_exchange_config(config_file):
     Check that each exchange config file is  valid
     :param config_file:
     """
+    config = json.load(open(config_file))
     return False
 

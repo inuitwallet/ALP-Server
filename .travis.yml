@@ -14,9 +14,7 @@ before_script:
   - psql -c "create database alp with owner alp;" -U postgres
 
 script:
-  - "cd tests"
-  - "python -m unittest discover -p '*_test.py'"
-  - "python urls_functionality.py"
+  - "python -m unittest discover -s tests"
 
 notifications:
   webhooks:
