@@ -1,10 +1,8 @@
 import logging
-import sys
 import unittest
 from os import remove
 from os.path import join
 import bottle
-sys.path.append('../')
 from src import config
 
 
@@ -22,7 +20,7 @@ class TestConfig(unittest.TestCase):
         stream.setFormatter(formatter)
         self.log.addHandler(stream)
         self.app = bottle.Bottle()
-        config.load(self.app, self.log, join('..', 'tests', 'config'), log_output=True)
+        config.load(self.app, self.log, join('tests', 'config'), log_output=True)
 
     def test_json_config_is_correct(self):
         self.log.info('check test_exchange.btc.reward')

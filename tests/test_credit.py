@@ -1,12 +1,8 @@
 import logging
-import sys
 import unittest
 import time
-
 from os.path import join
-
 import bottle
-sys.path.append('../')
 from src import credit, database, config
 
 
@@ -25,7 +21,7 @@ class TestCredits(unittest.TestCase):
         self.log.addHandler(stream)
         # set us up a bottle application with correct config
         self.app = bottle.Bottle()
-        config.load(self.app, self.log, join('..', 'tests', 'config'), log_output=False)
+        config.load(self.app, self.log, join('tests', 'config'), log_output=False)
         # build the database if it doesn't exist
         database.build(self.app, self.log, log_output=False)
         # clear any existing orders in the database
