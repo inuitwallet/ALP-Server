@@ -36,72 +36,72 @@ class TestUrls(unittest.TestCase):
         conn.close()
 
     def test_root(self):
-        """
-        Root
-        """
-        self.log.debug('test root url')
         resp = self.app.get('/')
         self.assertDictEqual(resp.json,
                              {'success': True, 'message': 'ALP Server is operational'})
 
-    def test_register(self):
-        """
-        Register
-        :return:
-        """
-        self.log.debug('test register without correct headers')
+    def test_register_without_correct_headers(self):
         self.assertDictEqual(self.app.post('/register').json,
                              {'success': False,
                               'message': 'Content-Type header must be set to '
                                          '\'application/json\''})
-        self.log.debug('test register with no data')
+
+    def test_register_without_no_data(self):
         self.assertDictEqual(self.app.post('/register', headers=self.headers).json,
                              {'success': False, 
                               'message': 'request body must be valid json'})
-        self.log.debug('test register with blank data')
+
+    def test_register_without_blank_data(self):
         self.assertDictEqual(self.app.post('/register',
                                            headers=self.headers, params={}).json,
                              {'success': False,
                               'message': 'request body must be valid json'})
-        self.log.debug('test register with invalid json')
+
+    def test_register_without_invalid_json(self):
         self.assertDictEqual(self.app.post('/register',
                                            headers=self.headers,
                                            params='{"user": "abcd123", }').json,
                              {'success': False,
                               'message': 'request body must be valid json'})
-        self.log.debug('set test data')
-        test_data = {'user': 'TEST_USER_1', 'address': 'BMJ2PJ1TNMwnTYUopQVxBrAPmmJjJjhd96',
-                     'exchange': 'test_exchange', 'unit': 'btc'}
-        self.log.debug('test register with no user in data')
-        data = test_data.copy()
+
+    def register_test_data(self):
+        return {'user': 'TEST_USER_1', 'address': 'BMJ2PJ1TNMwnTYUopQVxBrAPmmJjJjhd96',
+                'exchange': 'test_exchange', 'unit': 'btc'}
+
+    def test_register_no_user(self):
+        data = self.register_test_data()
         del data['user']
         self.assertDictEqual(self.app.post('/register',
                                            headers=self.headers,
                                            params=json.dumps(data)).json,
                              {'success': False, 'message': 'no user provided'})
-        self.log.debug('test register with no address in data')
-        data = test_data.copy()
+
+    def test_register_no_address(self):
+        data = self.register_test_data()
         del data['address']
         self.assertDictEqual(self.app.post('/register',
                                            headers=self.headers,
                                            params=json.dumps(data)).json,
                              {'success': False, 'message': 'no address provided'})
-        self.log.debug('test register with no exchange in data')
-        data = test_data.copy()
+
+    def test_register_no_exchange(self):
+        data = self.register_test_data()
         del data['exchange']
         self.assertDictEqual(self.app.post('/register',
                                            headers=self.headers,
                                            params=json.dumps(data)).json,
                              {'success': False, 'message': 'no exchange provided'})
-        self.log.debug('test register with no unit in data')
-        data = test_data.copy()
+
+    def test_register_no_unit(self):
+        data = self.register_test_data()
         del data['unit']
         self.assertDictEqual(self.app.post('/register',
                                            headers=self.headers,
                                            params=json.dumps(data)).json,
                              {'success': False, 'message': 'no unit provided'})
-        self.log.debug('test register with invalid address in data (no B at start)')
-        data = test_data.copy()
+
+    def test_register_invalid_address_no_B(self):
+        data = self.register_test_data()
         data['address'] = 'JMJ2PJ1TNMwnTYUopQVxBrAPmmJjJjhd96'
         self.assertDictEqual(self.app.post('/register',
                                            headers=self.headers,
@@ -109,8 +109,9 @@ class TestUrls(unittest.TestCase):
                              {'success': False,
                               'message': "JMJ2PJ1TNMwnTYUopQVxBrAPmmJjJjhd96 is not a "
                                          "valid NBT address. It should start with a 'B'"})
-        self.log.debug('test register with invalid address in data (invalid checksum)')
-        data = test_data.copy()
+
+    def test_register_invalid_address_bad_checksum(self):
+        data = self.register_test_data()
         data['address'] = 'BMJ2PJ1TNMwnTYUopQVxBrAPmmJjJjhd95'
         self.assertDictEqual(self.app.post('/register',
                                            headers=self.headers,
@@ -118,114 +119,120 @@ class TestUrls(unittest.TestCase):
                              {'success': False,
                               'message': "BMJ2PJ1TNMwnTYUopQVxBrAPmmJjJjhd95 is not a "
                                          "valid NBT address. The checksum doesn't match"})
-        self.log.debug('test register with unsupported exchange')
-        data = test_data.copy()
+
+    def test_register_unsupported_exchange(self):
+        data = self.register_test_data()
         data['exchange'] = 'bad_exchange'
         self.assertDictEqual(self.app.post('/register',
                                            headers=self.headers,
                                            params=json.dumps(data)).json,
                              {'success': False,
                               'message': 'bad_exchange is not supported'})
-        self.log.debug('test register with unsupported unit')
-        data = test_data.copy()
+
+    def test_register_unsupported_unit(self):
+        data = self.register_test_data()
         data['unit'] = 'bad_unit'
         self.assertDictEqual(self.app.post('/register',
                                            headers=self.headers,
                                            params=json.dumps(data)).json,
                              {'success': False,
                               'message': 'bad_unit is not supported on test_exchange'})
-        self.log.debug('test register complete')
-        data = test_data.copy()
+
+    def test_register_complete(self):
+        data = self.register_test_data()
         self.assertDictEqual(self.app.post('/register',
                                            headers=self.headers,
                                            params=json.dumps(data)).json,
                              {'success': True, 'message': 'user successfully registered'})
-        self.log.debug('test register re-register')
-        data = test_data.copy()
         self.assertDictEqual(self.app.post('/register',
                                            headers=self.headers,
                                            params=json.dumps(data)).json,
                              {'success': False, 'message': 'user is already registered'})
 
-    def test_liquidity(self):
-        """
-        Liquidity
-        :return:
-        """
-        self.log.debug('test liquidity without correct headers')
+    def test_liquidity_without_correct_headers(self):
         self.assertDictEqual(self.app.post('/liquidity').json,
                              {'success': False,
                               'message': 'Content-Type header must be set to '
                                          '\'application/json\''})
-        self.log.debug('test liquidity with no data')
+
+    def test_liquidity_no_data(self):
         self.assertDictEqual(self.app.post('/liquidity',
                                            headers=self.headers).json,
                              {'success': False,
                              'message': 'request body must be valid json'})
-        self.log.debug('test liquidity with blank data')
+
+    def test_liquidity_blank_data(self):
         self.assertDictEqual(self.app.post('/liquidity',
                                            headers=self.headers, params={}).json,
                              {'success': False,
                              'message': 'request body must be valid json'})
-        self.log.debug('test liquidity with invalid json')
+
+    def test_liquidity_invalid_json(self):
         self.assertDictEqual(self.app.post('/liquidity',
                                            headers=self.headers,
                                            params='{"user", "as234", }').json,
                              {'success': False,
                               'message': 'request body must be valid json'})
-        self.log.debug('set test data')
-        test_data = {'user': 'TEST_USER_1', 'req': {'test': True},
-                     'sign': 'this_is_signed',
-                     'exchange': 'test_exchange', 'unit': 'btc'}
-        self.log.debug('test liquidity with no user')
-        data = test_data.copy()
+
+    def liquidity_test_data(selfself):
+        return {'user': 'TEST_USER_1', 'req': {'test': True}, 'sign': 'this_is_signed',
+                'exchange': 'test_exchange', 'unit': 'btc'}
+
+    def test_liquidity_no_user(self):
+        data = self.liquidity_test_data()
         del data['user']
         self.assertDictEqual(self.app.post('/liquidity',
                                            headers=self.headers,
                                            params=json.dumps(data)).json,
                              {'success': False, 'message': 'no user provided'})
-        self.log.debug('test liquidity with no req')
-        data = test_data.copy()
+
+    def test_liquidity_no_req(self):
+        data = self.liquidity_test_data()
         del data['req']
         self.assertDictEqual(self.app.post('/liquidity',
                                            headers=self.headers,
                                            params=json.dumps(data)).json,
                              {'success': False, 'message': 'no req provided'})
-        self.log.debug('test liquidity with no sign')
-        data = test_data.copy()
+
+    def test_liquidity_no_sign(self):
+        data = self.liquidity_test_data()
         del data['sign']
         self.assertDictEqual(self.app.post('/liquidity',
                                            headers=self.headers,
                                            params=json.dumps(data)).json,
                              {'success': False, 'message': 'no sign provided'})
-        self.log.debug('test liquidity with no exchange')
-        data = test_data.copy()
+
+    def test_liquidity_no_exchange(self):
+        data = self.liquidity_test_data()
         del data['exchange']
         self.assertDictEqual(self.app.post('/liquidity',
                                            headers=self.headers,
                                            params=json.dumps(data)).json,
                              {'success': False, 'message': 'no exchange provided'})
-        self.log.debug('test liquidity with no unit')
-        data = test_data.copy()
+
+    def test_liquidity_no_unit(self):
+        data = self.liquidity_test_data()
         del data['unit']
         self.assertDictEqual(self.app.post('/liquidity',
                                            headers=self.headers,
                                            params=json.dumps(data)).json,
                              {'success': False, 'message': 'no unit provided'})
-        self.log.debug('test liquidity with incorrect user')
-        data = test_data.copy()
+
+    def test_liquidity_incorrect_user(self):
+        data = self.liquidity_test_data()
         data['user'] = 'blahblahblah'
         self.assertDictEqual(self.app.post('/liquidity',
                                            headers=self.headers,
                                            params=json.dumps(data)).json,
                              {'success': False,
                               'message': 'user blahblahblah is not registered'})
-        self.log.debug('test liquidity complete')
+
+    def test_liquidity_complete(self):
+        data = self.liquidity_test_data()
         reg_data = {'user': 'TEST_USER_1',
                     'address': 'BMJ2PJ1TNMwnTYUopQVxBrAPmmJjJjhd96',
                     'exchange': 'test_exchange', 'unit': 'btc'}
         self.app.post('/register', headers=self.headers, params=json.dumps(reg_data))
-        data = test_data.copy()
         self.assertDictEqual(self.app.post('/liquidity',
                                            headers=self.headers,
                                            params=json.dumps(data)).json,

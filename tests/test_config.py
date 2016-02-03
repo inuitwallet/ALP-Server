@@ -2,7 +2,7 @@ import json
 import logging
 import unittest
 from os import remove
-from os.path import join
+from os.path import join, isfile
 import bottle
 from src import config
 
@@ -21,7 +21,13 @@ class TestConfig(unittest.TestCase):
         stream.setFormatter(formatter)
         self.log.addHandler(stream)
         self.app = bottle.Bottle()
-        config.load(self.app, self.log, join('tests', 'config'), log_output=True)
+        config.load(self.app, self.log, join('tests', 'config'), log_output=False)
+
+    def tearDown(self):
+        if isfile('test_pool_config'):
+            remove('test_pool_config')
+        if isfile('test_exchange_config'):
+            remove('test_exchange_config')
 
     def test_json_config_btc_reward(self):
         self.assertEqual(self.app.config['test_exchange.btc.reward'], 0.0250)
@@ -268,7 +274,6 @@ class TestConfig(unittest.TestCase):
                 'name=alp\nuser=alp\npass=Trip-Tough-Basis-Brother-2\nhost=localhost\n'
                 'port=5432')
         self.assertTrue(config.check_pool_config('test_pool_config'))
-        remove('test_pool_config')
 
     def build_exchange_config_file(self, contents):
         """
@@ -425,4 +430,4 @@ class TestConfig(unittest.TestCase):
         check = config.check_exchange_config('test_exchange_config')
         print check
         self.assertTrue(check[0])
-        remove('test_exchange_config')
+
