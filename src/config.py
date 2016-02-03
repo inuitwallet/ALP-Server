@@ -92,6 +92,10 @@ def check_exchange_config(config_file):
     Check that each exchange config file is  valid
     :param config_file:
     """
-    config = json.load(open(config_file))
-    return False
+    try:
+        config = json.load(open(config_file))
+    except ValueError:
+        return False, '{} is not valid json'.format(config_file)
+
+    return True, 'All complete'
 

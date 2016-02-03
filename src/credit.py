@@ -88,7 +88,7 @@ def credit(app, rpc, log):
             meta['number-of-users-active'] += 1
             active_users.append(order[1])
         # calculate the details
-        reward, percentage = calculate_order_reward(app, order, totals, rewards)
+        reward, percentage = calculate_order_reward(order, totals, rewards)
         # and save to the database
         db.execute("INSERT INTO credits (time,key,exchange,unit,rank,side,order_id,"
                    "provided,percentage,reward,paid) VALUES "
@@ -232,10 +232,9 @@ def calculate_reward(app, totals):
     return rewards
 
 
-def calculate_order_reward(app, order, totals, rewards):
+def calculate_order_reward(order, totals, rewards):
     """
     Calculate the rewards for the given order
-    :param app: The application object for accessing app.config
     :param order: an order to use for the calculation
     :param totals: the total liquidity dict
     :param rewards: the rewards dict

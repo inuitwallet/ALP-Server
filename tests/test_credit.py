@@ -125,7 +125,7 @@ class TestCredits(unittest.TestCase):
         # total for each side/rank is 500
         # therefore each order is 0.2 * reward
         for order in all_orders:
-            order_reward = credit.calculate_order_reward(self.app, order,
+            order_reward = credit.calculate_order_reward(order,
                                                          self.total_liquidity,
                                                          self.rewards)
             calc_reward = (float(self.rewards[order[8]][order[9]][order[5]][order[2]]) *
