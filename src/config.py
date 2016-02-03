@@ -2,6 +2,7 @@ import ConfigParser
 import json
 from os import listdir
 from os.path import isfile, join
+import utils
 
 __author__ = 'sammoth'
 
@@ -89,13 +90,51 @@ def check_pool_config(config_file):
 
 def check_exchange_config(config_file):
     """
-    Check that each exchange config file is  valid
+    Check that each exchange config file is valid
     :param config_file:
     """
     try:
         config = json.load(open(config_file))
     except ValueError:
         return False, '{} is not valid json'.format(config_file)
+    for ex in config:
+        # check that the exchange is supported
+        if ex not in utils.supported_exchanges():
+            return False, '{} is not a supported exchange'.format(ex)
+        for unit in config[ex]:
+            # make sure the unit section has a reward
+            if 'reward' not in config[ex][unit]:
+                return False, 'There is no reward set for {}.{}'.format(ex, unit)
+            # ensure the reward is not negative
+            if config[ex][unit]['reward'] <= 0:
+                return False, 'The reward set for {}.{} is incorrect'.format(ex, unit)
+            # make sure the unit has a target
+            if 'target' not in config[ex][unit]:
+                return False, 'There is no target set for {}.{}'.format(ex, unit)
+            # ensure the target is not negative
+            if config[ex][unit]['target'] <= 0:
+                return False, 'The target set for {}.{} is incorrect'.format(ex, unit)
+            # ensure there is an 'ask' section
+            if 'ask' not in config[ex][unit]:
+                return False, "{}.{} has no 'ask' details".format(ex, unit)
+            # ensure there is a 'bid' section
+            if 'bid' not in config[ex][unit]:
+                return False, "{}.{} has no 'bid' details".format(ex, unit)
+            # ensure 'ask' section has a ratio
+            if 'ratio' not in config[ex][unit]['ask']:
+                return False, 'There is no ratio set for {}.{}.ask'.format(ex, unit)
+            # ensure 'ask' ratio is correct
+            if config[ex][unit]['ask']['ratio'] <= 0:
+                return False, 'The ratio set for {}.{}.ask is incorrect'.format(ex, unit)
+            # ensure 'bid' section has a ratio
+            if 'ratio' not in config[ex][unit]['bid']:
+                return False, 'There is no ratio set for {}.{}.bid'.format(ex, unit)
+            # ensure 'bid' ratio is correct
+            if config[ex][unit]['bid']['ratio'] <= 0:
+                return False, 'The ratio set for {}.{}.bid is incorrect'.format(ex, unit)
+            # ensure ask and bid ratio add up to 1.0
+            if config[ex][unit]['ask']['ratio'] + config[ex][unit]['bid']['ratio'] != 1.0:
+                return False, "The ask and bid ratios don't add up to 1.0"
 
     return True, 'All complete'
 
