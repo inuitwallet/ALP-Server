@@ -10,7 +10,7 @@ host=127.0.0.1
 port=14002
 
 [db]
-name=alp
+name=alp_test
 user=alp
 pass=Trip-Tough-Basis-Brother-2
 host=localhost
