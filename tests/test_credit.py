@@ -84,7 +84,6 @@ class TestCredits(unittest.TestCase):
         Test the get_total_liquidity function
         :return:
         """
-        self.log.debug('running test_get_total_liquidity')
         self.assertDictEqual(self.total_liquidity,
                              {'test_exchange': {'ppc': {'ask': {'total': 1000.0,
                                                                 'rank_1': 500.0,
@@ -106,7 +105,6 @@ class TestCredits(unittest.TestCase):
         Test the calculate_reward function
         :return:
         """
-        self.log.debug('running test_calculate_reward')
         self.assertDictEqual(credit.calculate_reward(self.app, self.total_liquidity),
                              self.rewards)
 
@@ -115,7 +113,6 @@ class TestCredits(unittest.TestCase):
         Test the reward calculation for each order
         :return:
         """
-        self.log.debug('running order reward calculation')
         conn = database.get_db(self.app)
         c = conn.cursor()
         c.execute("SELECT * FROM orders")
@@ -137,8 +134,6 @@ class TestCredits(unittest.TestCase):
         Test the credit function
         :return:
         """
-        self.log.debug('running test_crediting')
-
         # for crediting we expect the credit output to look like
         check_time = int(time.time())
         credit.credit(self.app, None, self.log)
