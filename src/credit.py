@@ -261,16 +261,26 @@ def liquidity_info(app, rpc, log, totals):
     """
     for exchange in app.config['exchanges']:
         for unit in app.config['{}.units'.format(exchange)]:
-            identifier = "1:{}:{}:{}".format('NBT{}'.format(unit.upper()),
-                                             exchange,
-                                             app.config['pool.name'])
-            try:
-                rpc.liquidityinfo('B', totals[exchange][unit]['bid'],
-                                  totals[exchange][unit]['ask'],
-                                  app.config['pool.grant_address'], identifier)
-            except JSONRPCException as e:
-                log.error('Sending liquidity info failed: {}'.format(e.message))
-            log.info('sent liquidity info for %s: ask=%s, bid=%s',
-                     identifier,
-                     totals[exchange][unit]['ask'],
-                     totals[exchange][unit]['bid'])
+            for rank in app.config['{}.{}.bid.ranks'.format(exchange, unit)]:
+                identifier = "1:{}:{}:{}_1.{}".format(
+                    'NBT{}'.format(unit.upper()),
+                    exchange,
+                    app.config['pool.name'],
+                    rank
+                )
+                try:
+                    rpc.liquidityinfo(
+                        'B',
+                        totals[exchange][unit]['bid'][rank],
+                        totals[exchange][unit]['ask'][rank],
+                        app.config['pool.grant_address'],
+                        identifier
+                    )
+                except JSONRPCException as e:
+                    log.error('Sending liquidity info failed: {}'.format(e.message))
+                log.info(
+                    'sent liquidity info for %s: ask=%s, bid=%s',
+                    identifier,
+                    totals[exchange][unit]['ask'],
+                    totals[exchange][unit]['bid']
+                )
