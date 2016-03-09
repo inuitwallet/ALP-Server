@@ -11,7 +11,7 @@ cache: pip
 
 before_script:
   - psql -c "create role alp with login password 'Trip-Tough-Basis-Brother-2';" -U postgres
-  - psql -c "create database alp with owner alp;" -U postgres
+  - psql -c "create database alp_test with owner alp;" -U postgres
 
 script:
   - "python -m unittest discover -s tests"
