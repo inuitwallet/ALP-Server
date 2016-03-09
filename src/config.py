@@ -20,6 +20,7 @@ def load(app, log, config_dir, log_output):
     pool_check = check_pool_config(join(config_dir, 'pool_config'))
     if not pool_check[0]:
         log.error('Pool config check failed: {}'.format(pool_check[1]))
+        return
     if log_output:
         log.info('load pool config')
     app.config.load_config(join(config_dir, 'pool_config'))
@@ -30,6 +31,11 @@ def load(app, log, config_dir, log_output):
     for exchange_file in listdir(join(config_dir, 'exchanges')):
         if not isfile(join(config_dir, 'exchanges', exchange_file)):
             continue
+        exchange_config_check = check_exchange_config(join(
+            config_dir, 'exchanges', exchange_file
+        ))
+        if not exchange_config_check[0]:
+            log.error('Exchange config check failed: {}'.format(exchange_config_check[1]))
         with open(join(config_dir, 'exchanges', exchange_file)) as exchange:
             exchange_dict = json.load(exchange)
             app.config.load_dict(exchange_dict)
