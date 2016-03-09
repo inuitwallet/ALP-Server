@@ -4,6 +4,10 @@ from hashlib import sha256
 from binascii import unhexlify
 
 
+def supported_exchanges():
+    return ['bittrex', 'poloniex', 'ccedk', 'bter', 'cryptsy', 'test_exchange']
+
+
 class AddressCheck(object):
     def __init__(self):
         self.b58_digits = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
