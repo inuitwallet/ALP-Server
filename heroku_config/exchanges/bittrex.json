@@ -1,8 +1,8 @@
 {
-  "test_exchange_2": {
-    "usd": {
-      "reward": 0.0205,
-      "target": 150,
+  "bittrex": {
+    "btc": {
+      "reward": 0.025,
+      "target": 1250,
       "ask": {
         "ratio": 0.50,
         "rank_1": {

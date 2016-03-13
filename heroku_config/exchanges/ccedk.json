@@ -1,0 +1,28 @@
+{
+  "ccedk": {
+    "btc": {
+      "reward": 0.025,
+      "target": 1250,
+      "ask": {
+        "ratio": 0.50,
+        "rank_1": {
+          "ratio": 1.00,
+          "tolerance": 0.0105
+        },
+        "rank_2": {
+          "ratio": 0.00
+        }
+      },
+      "bid": {
+        "ratio": 0.50,
+        "rank_1": {
+          "ratio": 1.00,
+          "tolerance": 0.0105
+        },
+        "rank_2": {
+          "ratio": 0.00
+        }
+      }
+    }
+  }
+}
