@@ -216,48 +216,6 @@ class BTER(object):
         return valid
 
 
-class Cryptsy(object):
-
-    def __init__(self):
-        pass
-
-    def __repr__(self):
-        return 'cryptsy'
-
-    @staticmethod
-    def validate_request(**kwargs):
-        user = kwargs.get('user')
-        req = kwargs.get('req')
-        sign = kwargs.get('sign')
-        headers = {'Sign': sign,
-                   'Key': user}
-        url = 'https://api.cryptsy.com/api'
-        r = requests.post(url=url, data=req, headers=headers)
-        try:
-            data = r.json()
-        except ValueError as e:
-            return {'orders': [], 'message': '{}: {}'.format(e.message, r.text),
-                    'success': False}
-        if 'success' not in data:
-            return {'orders': [], 'message': 'invalid response', 'success': False}
-        if int(data['success']) == 0:
-            try:
-                message = json.dumps(data)
-            except ValueError:
-                message = data
-            return {'orders': [], 'message': message, 'success': False}
-        valid = {'orders': [], 'message': 'success'}
-        for order in data['return']:
-            valid['orders'].append({'id': int(order['orderid']),
-                                    'price': float(order['price']),
-                                    'type': 'ask' if order['ordertype'] == 'Sell' else
-                                    'bid',
-                                    'amount': float(order['quantity'])})
-        if not valid['orders']:
-            return {'orders': [], 'message': 'no orders found', 'success': True}
-        return valid
-
-
 class TestExchange(object):
 
     def __init__(self):
