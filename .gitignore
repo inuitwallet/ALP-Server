@@ -29,6 +29,7 @@ ve
 
 .idea/
 logs/
+Ansible/
 unix/*_*.conf
 unix/client_*_*
 *.conf.json
