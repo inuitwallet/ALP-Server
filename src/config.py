@@ -1,7 +1,7 @@
 import ConfigParser
 import json
 from os import listdir
-from os.path import isfile, join
+from os.path import isfile, join, splitext
 import utils
 
 __author__ = 'sammoth'
@@ -30,6 +30,9 @@ def load(app, log, config_dir, log_output):
     app.config['units'] = []
     for exchange_file in listdir(join(config_dir, 'exchanges')):
         if not isfile(join(config_dir, 'exchanges', exchange_file)):
+            continue
+        filename, file_extension = splitext(join(config_dir, 'exchanges', exchange_file))
+        if file_extension != ".json":
             continue
         exchange_config_check = check_exchange_config(join(
             config_dir, 'exchanges', exchange_file
@@ -100,9 +103,11 @@ def check_exchange_config(config_file):
     :param config_file:
     """
     try:
-        config = json.load(open(config_file))
+        conf_file = open(config_file)
+        config = json.load(conf_file)
     except ValueError:
         return False, '{} is not valid json'.format(config_file)
+    conf_file.close()
     for ex in config:
         # check that the exchange is supported
         if ex not in utils.supported_exchanges():
