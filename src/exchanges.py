@@ -24,7 +24,7 @@ class Bittrex(object):
         req = kwargs.get('req')
         sign = kwargs.get('sign')
         url = 'https://bittrex.com/api/v1.1/market/getopenorders?' \
-              'apikey={}&nonce={}&market={}'.format(user, req['nonce'], req['market'])
+              'market={}&apikey={}&nonce={}'.format(req['market'], user, req['nonce'])
         r = requests.post(url=url,
                           headers={'apisign': sign})
         try:
@@ -32,8 +32,14 @@ class Bittrex(object):
         except ValueError as e:
             return {'orders': [], 'message': '{}: {}'.format(e.message, r.text),
                     'success': False}
-        if not data['success']:
+        if 'success' not in data:
             return {'orders': [], 'message': 'invalid response', 'success': False}
+        if not data['success']:
+            return {
+                'orders': [],
+                'message': 'error returned: {}'.format(data['message']),
+                'success': False
+            }
         valid = {'orders': [], 'message': 'success', 'success': True}
         for order in data['result']:
             if 'LIMIT' not in order['OrderType']:
