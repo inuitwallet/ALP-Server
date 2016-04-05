@@ -1,6 +1,7 @@
 {
   "poloniex": {
     "btc": {
+      "reverse": true,
       "reward": 0.025,
       "target": 1250,
       "ask": {
