@@ -304,15 +304,23 @@ def liquidity(db):
     db.execute("DELETE FROM orders WHERE key=%s AND exchange=%s AND unit=%s", (user,
                                                                                exchange,
                                                                                unit))
+
+    # make sure the price is based in the correct units
+    # price from price feed is in nbt/btc we potentially need btc/nbt
+    # base this on the 'revers' parameter set in the exchange config
+    if app.config['{}.{}.reverse'.format(exchange, unit)]:
+        price = 1/float(price)
+
     # Loop through the orders
     for order in orders:
-        # Calculate how the order price is from the known good price
+        # Calculate how far the order price is from the known good price
         order_deviation = 1.00 - (min(float(order['price']), float(price)) /
                                   max(float(order['price']), float(price)))
         # Use the rank tolerances to determine the rank of the order
         order_rank = ''
         # first build a sorted list of tolerances
         tolerances = []
+        tolerance = 1.00
         for rank in app.config['{}.{}.{}.ranks'.format(exchange, unit, order['side'])]:
             try:
                 tolerance = app.config['{}.{}.{}.{}.tolerance'.format(
