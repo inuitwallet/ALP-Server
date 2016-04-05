@@ -1,6 +1,7 @@
 {
   "test_exchange": {
     "btc": {
+      "reverse": false,
       "reward": 0.0250,
       "target": 1500,
       "ask": {

@@ -1,6 +1,7 @@
 {
   "test_exchange_2": {
     "usd": {
+      "reverse": true,
       "reward": 0.0205,
       "target": 150,
       "ask": {

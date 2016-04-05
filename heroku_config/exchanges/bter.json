@@ -1,6 +1,7 @@
 {
   "bter": {
     "btc": {
+      "reverse": false,
       "reward": 0.025,
       "target": 1250,
       "ask": {
