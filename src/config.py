@@ -125,6 +125,9 @@ def check_exchange_config(config_file):
             # ensure the target is not negative
             if config[ex][unit]['target'] <= 0:
                 return False, 'The target set for {}.{} is incorrect'.format(ex, unit)
+            # ensure the unit section has a reverse parameter
+            if 'reverse' not in config[ex][unit]:
+                return False, 'There is no reverse parameter for {}.{}'.format(ex, unit)
             # ensure there is an 'ask' section
             if 'ask' not in config[ex][unit]:
                 return False, "{}.{} has no 'ask' details".format(ex, unit)

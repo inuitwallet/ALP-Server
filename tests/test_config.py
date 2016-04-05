@@ -351,6 +351,14 @@ class TestConfig(unittest.TestCase):
         self.assertFalse(check[0])
         self.assertEqual(check[1], 'The target set for test_exchange.btc is incorrect')
 
+    def test_exchange_no_reverse_param(self):
+        bad_config = self.exchange_test_data()
+        del bad_config['test_exchange']['btc']['reverse']
+        self.build_exchange_config_file(json.dumps(bad_config))
+        check = config.check_exchange_config('test_exchange_config')
+        self.assertFalse(check[0])
+        self.assertEqual(check[1], 'There is no reverse parameter for test_exchange.btc')
+
     def test_exchange_config_no_ask(self):
         bad_config = self.exchange_test_data()
         del bad_config['test_exchange']['btc']['ask']
