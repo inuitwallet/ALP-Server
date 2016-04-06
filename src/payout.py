@@ -40,7 +40,7 @@ def pay(app, rpc, log):
             continue
         user_payouts[address] = round(float(user_payouts[address]), 6)
     if not user_payouts:
-        log.info('no-one to payout to')
+        log.info('no-one to payout to: %s', user_rewards)
         timer_time = 86400.0
     else:
         # SendMany from nud. Report any error to log output
