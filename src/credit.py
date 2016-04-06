@@ -74,7 +74,10 @@ def credit(app, rpc, log):
     totals = get_total_liquidity(app, deduped_orders)
 
     # We've calculated the totals so submit them as liquidity_info
-    Thread(target=liquidity_info, kwargs={'rpc': rpc, 'totals': totals, 'log': log})
+    Thread(
+        target=liquidity_info,
+        kwargs={'app': app, 'rpc': rpc, 'totals': totals, 'log': log}
+    ).start()
 
     # calculate the round rewards based on percentages of target and ratios of side and
     # rank
