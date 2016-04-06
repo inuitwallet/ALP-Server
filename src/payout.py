@@ -45,7 +45,7 @@ def pay(app, rpc, log):
     else:
         # SendMany from nud. Report any error to log output
         try:
-            rpc.sendmany("", "'{}'".format(json.dumps(user_payouts).replace(' ', '')))
+            rpc.sendmany("", user_payouts)
             log.info('payout successful: \'%s\'', json.dumps(user_payouts))
             # mark credits to paid addresses as paid
             for reward in rewards:
