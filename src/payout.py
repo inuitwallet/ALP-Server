@@ -6,11 +6,12 @@ from threading import Timer
 
 from bitcoinrpc.authproxy import JSONRPCException
 from src import database
+from src.utils import get_rpc
 
 __author__ = 'sammoth'
 
 
-def pay(app, rpc, log):
+def pay(app, log):
     """
     Pay all users who have a balance greater than the minimum payout
     :param log:
@@ -45,6 +46,8 @@ def pay(app, rpc, log):
     else:
         # SendMany from nud. Report any error to log output
         try:
+            # get an rpc connection
+            rpc = get_rpc(app)
             rpc.sendmany("", user_payouts)
             log.info('payout successful: \'%s\'', json.dumps(user_payouts))
             # mark credits to paid addresses as paid

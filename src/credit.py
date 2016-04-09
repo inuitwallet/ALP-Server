@@ -5,6 +5,7 @@ from threading import Timer, Thread
 import database
 from bitcoinrpc.authproxy import JSONRPCException
 from src import config
+from src.utils import get_rpc
 
 __author__ = 'sammoth'
 
@@ -20,7 +21,7 @@ It also uses that data to submit liquidity info back to Nu
 """
 
 
-def credit(app, rpc, log):
+def credit(app, log):
     """
     This runs every minute and calculates the total liquidity on order (rank 1) and
     each users proportion of it.
@@ -31,7 +32,7 @@ def credit(app, rpc, log):
     """
     # Set the timer going again
     credit_timer = Timer(60.0, credit,
-                         kwargs={'app': app, 'rpc': rpc, 'log': log})
+                         kwargs={'app': app, 'log': log})
     credit_timer.name = 'credit_timer'
     credit_timer.daemon = True
     credit_timer.start()
@@ -76,7 +77,7 @@ def credit(app, rpc, log):
     # We've calculated the totals so submit them as liquidity_info
     Thread(
         target=liquidity_info,
-        kwargs={'app': app, 'rpc': rpc, 'totals': totals, 'log': log}
+        kwargs={'app': app, 'totals': totals, 'log': log}
     ).start()
 
     # calculate the round rewards based on percentages of target and ratios of side and
@@ -253,7 +254,7 @@ def calculate_order_reward(order, totals, rewards):
     return reward, percentage
 
 
-def liquidity_info(app, rpc, log, totals):
+def liquidity_info(app, log, totals):
     """
     Calculate the current amount of liquidity in ranks 1 and 2 and submit them to Nu
     :param totals:
@@ -272,6 +273,8 @@ def liquidity_info(app, rpc, log, totals):
                     rank
                 )
                 try:
+                    # get a connection to the nud rpc interface
+                    rpc = get_rpc(app)
                     rpc.liquidityinfo(
                         'B',
                         totals[exchange][unit]['bid'][rank],

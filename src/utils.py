@@ -1,7 +1,17 @@
 #! /usr/bin/env python
-
+from bitcoinrpc.authproxy import AuthServiceProxy
 from hashlib import sha256
 from binascii import unhexlify
+
+
+def get_rpc(app):
+    """
+    Return a connection to the nud  rpc  interface
+    """
+    return AuthServiceProxy("http://{}:{}@{}:{}".format(app.config['rpc.user'],
+                                                        app.config['rpc.pass'],
+                                                        app.config['rpc.host'],
+                                                        app.config['rpc.port']))
 
 
 def supported_exchanges():

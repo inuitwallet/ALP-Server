@@ -8,7 +8,6 @@ from threading import Timer
 import bottle
 import bottle_pgsql
 import os
-from bitcoinrpc.authproxy import AuthServiceProxy
 from bottle import run, request, response, static_file
 from requestlogger import WSGILogger, ApacheFormatter
 from src import credit, database, payout, config
@@ -87,10 +86,6 @@ app.config['start_time'] = time.time()
 
 # Set up a connection with nud
 log.info('set up a json-rpc connection with nud')
-rpc = AuthServiceProxy("http://{}:{}@{}:{}".format(app.config['rpc.user'],
-                                                   app.config['rpc.pass'],
-                                                   app.config['rpc.host'],
-                                                   app.config['rpc.port']))
 
 # set up a price fetcher for each currency
 pf = {}
@@ -107,7 +102,7 @@ for unit in app.config['units']:
 # Set the timer for credits
 log.info('running credit timer')
 credit_timer = Timer(60.0, credit.credit,
-                     kwargs={'app': app, 'rpc': rpc, 'log': log})
+                     kwargs={'app': app, 'log': log})
 credit_timer.name = 'credit_timer'
 credit_timer.daemon = True
 credit_timer.start()
@@ -127,7 +122,7 @@ else:
 conn.commit()
 conn.close()
 payout_timer = Timer(payout_time, payout.pay,
-                     kwargs={'app': app, 'rpc': rpc, 'log': log})
+                     kwargs={'app': app, 'log': log})
 payout_timer.name = 'payout_timer'
 payout_timer.daemon = True
 payout_timer.start()
