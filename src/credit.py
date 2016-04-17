@@ -272,21 +272,23 @@ def liquidity_info(app, log, totals):
                     app.config['pool.name'],
                     rank
                 )
-                try:
-                    # get a connection to the nud rpc interface
-                    rpc = get_rpc(app)
-                    rpc.liquidityinfo(
-                        'B',
-                        totals[exchange][unit]['bid'][rank],
-                        totals[exchange][unit]['ask'][rank],
-                        app.config['pool.grant_address'],
-                        identifier
+                rpc = get_rpc(app)
+                if rpc is not None:
+                    try:
+                        # get a connection to the nud rpc interface
+
+                        rpc.liquidityinfo(
+                            'B',
+                            totals[exchange][unit]['bid'][rank],
+                            totals[exchange][unit]['ask'][rank],
+                            app.config['pool.grant_address'],
+                            identifier
+                        )
+                    except JSONRPCException as e:
+                        log.error('Sending liquidity info failed: {}'.format(e.message))
+                    log.info(
+                        'sent liquidity info for %s: ask=%s, bid=%s',
+                        identifier,
+                        totals[exchange][unit]['ask'][identifier],
+                        totals[exchange][unit]['bid'][identifier]
                     )
-                except JSONRPCException as e:
-                    log.error('Sending liquidity info failed: {}'.format(e.message))
-                log.info(
-                    'sent liquidity info for %s: ask=%s, bid=%s',
-                    identifier,
-                    totals[exchange][unit]['ask'],
-                    totals[exchange][unit]['bid']
-                )
