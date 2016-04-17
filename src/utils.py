@@ -22,6 +22,7 @@ def get_rpc(app):
 
     return rpc
 
+
 def supported_exchanges():
     return ['bittrex', 'poloniex', 'ccedk', 'bter', 'cryptsy', 'test_exchange']
 
