@@ -27,6 +27,7 @@
     },
     "ppc": {
       "reward": 0.0250,
+      "reverse": true,
       "target": 1500,
       "ask": {
         "ratio": 0.5,
