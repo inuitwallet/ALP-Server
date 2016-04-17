@@ -136,7 +136,7 @@ class TestCredits(unittest.TestCase):
         """
         # for crediting we expect the credit output to look like
         check_time = int(time.time())
-        credit.credit(self.app, None, self.log)
+        credit.credit(self.app, self.log)
         # get the credit details from the database
         conn = database.get_db(self.app)
         c = conn.cursor()
