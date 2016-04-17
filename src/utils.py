@@ -20,6 +20,8 @@ def get_rpc(app):
     except Exception:
         rpc = None
 
+    return rpc
+
 def supported_exchanges():
     return ['bittrex', 'poloniex', 'ccedk', 'bter', 'cryptsy', 'test_exchange']
 
