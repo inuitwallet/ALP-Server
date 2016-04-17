@@ -8,11 +8,17 @@ def get_rpc(app):
     """
     Return a connection to the nud  rpc  interface
     """
-    return AuthServiceProxy("http://{}:{}@{}:{}".format(app.config['rpc.user'],
-                                                        app.config['rpc.pass'],
-                                                        app.config['rpc.host'],
-                                                        app.config['rpc.port']))
-
+    try:
+        rpc = AuthServiceProxy(
+            "http://{}:{}@{}:{}".format(
+                app.config['rpc.user'],
+                app.config['rpc.pass'],
+                app.config['rpc.host'],
+                app.config['rpc.port']
+            )
+        )
+    except Exception:
+        rpc = None
 
 def supported_exchanges():
     return ['bittrex', 'poloniex', 'ccedk', 'bter', 'cryptsy', 'test_exchange']

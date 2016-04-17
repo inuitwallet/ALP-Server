@@ -65,7 +65,7 @@ def pay(app, log):
             timer_time = 120.0
     # reset timer
     payout_timer = Timer(timer_time, pay,
-                         kwargs={'app': app, 'rpc': rpc, 'log': log})
+                         kwargs={'app': app, 'log': log})
     payout_timer.name = 'payout_timer'
     payout_timer.daemon = True
     payout_timer.start()

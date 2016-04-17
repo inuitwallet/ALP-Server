@@ -7,6 +7,18 @@ import zmq
 __author__ = 'woolly_sammoth'
 
 
+def get_price(unit, log):
+    # price streamer doesn't handle usd, we can hard code the price here
+    if unit == 'usd':
+        price = 1.00
+        log.info('usd price set to 1.00')
+    else:
+        pf = PriceFetcher(unit, log)
+        pf.subscribe()
+        price = pf.price
+    return price
+
+
 class PriceFetcher(object):
     """
     This object allows for connection and subscription to the NuBot price streamer.
@@ -33,7 +45,7 @@ class PriceFetcher(object):
         self.ping_port = 5555
         self.main_port = 5556
         self.secondary_port = 8889
-        self.currency_port = None
+        self.currency_port = 0
         # these properties are used during the subscription
         self.session_id = uuid.uuid4()
         self.currency_token = None
@@ -50,6 +62,7 @@ class PriceFetcher(object):
         :param currency:
         :return:
         """
+        self.log.info('subscribing to price streamer')
         # send a ping? to test streamer health
         self.send_ping()
         # if there's no reply the streamer is down and we should fall back to standard
@@ -57,10 +70,9 @@ class PriceFetcher(object):
         if not self.ping:
             # if there's no reply from the ping
             # get the price from a normal feed
-            self.log.warn('unable to ping price streamer')
             self.price = self.normal_price_feed()
             # then set a timer to try and register again in 30 seconds
-            sub_timer = Timer(30.0, self.subscribe)
+            sub_timer = Timer(60.0, self.subscribe)
             sub_timer.daemon = True
             sub_timer.start()
             return
@@ -73,7 +85,7 @@ class PriceFetcher(object):
             self.log.warn('price streamer didn\'t return token')
             self.price = self.normal_price_feed()
             # then set a timer to try and register again in 30 seconds
-            sub_timer = Timer(30.0, self.subscribe)
+            sub_timer = Timer(60.0, self.subscribe)
             sub_timer.daemon = True
             sub_timer.start()
             return
@@ -86,7 +98,7 @@ class PriceFetcher(object):
             self.log.warn('price streamer failed to return price')
             self.price = self.normal_price_feed()
             # then set a timer to try and register again in 30 seconds
-            sub_timer = Timer(30.0, self.subscribe)
+            sub_timer = Timer(60.0, self.subscribe)
             sub_timer.daemon = True
             sub_timer.start()
             return
@@ -95,7 +107,7 @@ class PriceFetcher(object):
         sub_thread.daemon = True
         sub_thread.start()
         # and set a timer thread to check the health of the server with ping?
-        ping_thread = Timer(30.0, self.health_thread)
+        ping_thread = Timer(60.0, self.health_thread)
         ping_thread.daemon = True
         ping_thread.start()
 
@@ -126,20 +138,21 @@ class PriceFetcher(object):
         Revert to standard feeds if the pong fails
         :return:
         """
+        self.log.info('checking price streamer health')
         # send the ping
         self.send_ping()
         if not self.ping:
             # if there's no reply from the ping
             # get the price from a normal feed
-            self.log.warn('unable to ping price streamer')
+            #self.log.warn('unable to ping price streamer')
             self.price = self.normal_price_feed()
             # then set a timer to try and register again in 30 seconds
-            sub_timer = Timer(30.0, self.subscribe)
+            sub_timer = Timer(60.0, self.subscribe)
             sub_timer.daemon = True
             sub_timer.start()
         else:
             # if we got a valid reply set another timer to check again in 30 seconds
-            ping_thread = Timer(30.0, self.health_thread)
+            ping_thread = Timer(60.0, self.health_thread)
             ping_thread.daemon = True
             ping_thread.start()
 
@@ -157,8 +170,8 @@ class PriceFetcher(object):
                                                   self.base_url,
                                                   (int(self.currency_port) + 100)))
         # set the timeouts
-        cancel_socket.setsockopt(zmq.SNDTIMEO, 2000)
-        cancel_socket.setsockopt(zmq.RCVTIMEO, 2000)
+        cancel_socket.setsockopt(zmq.SNDTIMEO, 500)
+        cancel_socket.setsockopt(zmq.RCVTIMEO, 500)
         # send the stop message
         cancel_socket.send('{} {} stop'.format(self.currency_token, self.session_id))
         # set the output for notifications
@@ -177,8 +190,8 @@ class PriceFetcher(object):
                                                 self.base_url,
                                                 self.ping_port))
         # set the timeouts
-        ping_socket.setsockopt(zmq.SNDTIMEO, 2000)
-        ping_socket.setsockopt(zmq.RCVTIMEO, 2000)
+        ping_socket.setsockopt(zmq.SNDTIMEO, 500)
+        ping_socket.setsockopt(zmq.RCVTIMEO, 500)
         # default to False
         self.ping = False
         # send the ping? request
@@ -194,6 +207,7 @@ class PriceFetcher(object):
             self.ping = True
         # remember to close the socket
         ping_socket.close()
+        self.log.info('streamer ping for %s returned %s', self.unit, self.ping)
 
     def request_init(self):
         """
@@ -209,8 +223,8 @@ class PriceFetcher(object):
                                                 self.base_url,
                                                 self.main_port))
         # set the timeouts
-        init_socket.setsockopt(zmq.SNDTIMEO, 2000)
-        init_socket.setsockopt(zmq.RCVTIMEO, 2000)
+        init_socket.setsockopt(zmq.SNDTIMEO, 500)
+        init_socket.setsockopt(zmq.RCVTIMEO, 500)
         # send the necessary information
         init_socket.send('{} {}:{} {}'.format(self.session_id, self.base_url,
                                               self.secondary_port, self.unit))
@@ -239,8 +253,8 @@ class PriceFetcher(object):
                                                  self.base_url,
                                                  (int(self.currency_port) + 100)))
         # set the timeouts
-        price_socket.setsockopt(zmq.SNDTIMEO, 2000)
-        price_socket.setsockopt(zmq.RCVTIMEO, 2000)
+        price_socket.setsockopt(zmq.SNDTIMEO, 500)
+        price_socket.setsockopt(zmq.RCVTIMEO, 500)
         # send the token and our session id
         price_socket.send('{} {} start'.format(self.currency_token, self.session_id))
         try:
