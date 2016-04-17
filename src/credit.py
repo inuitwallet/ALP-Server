@@ -301,6 +301,6 @@ def liquidity_info(app, log, totals):
                     log.info(
                         'sent liquidity info for %s: ask=%s, bid=%s',
                         identifier,
-                        totals[exchange][unit]['ask'][identifier],
-                        totals[exchange][unit]['bid'][identifier]
+                        totals[exchange][unit]['ask'][rank],
+                        totals[exchange][unit]['bid'][rank]
                     )
