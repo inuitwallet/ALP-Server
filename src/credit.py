@@ -31,8 +31,11 @@ def credit(app, log):
     :return:
     """
     # Set the timer going again
-    credit_timer = Timer(60.0, credit,
-                         kwargs={'app': app, 'log': log})
+    credit_timer = Timer(
+        60.0,
+        credit,
+        kwargs={'app': app, 'log': log}
+    )
     credit_timer.name = 'credit_timer'
     credit_timer.daemon = True
     credit_timer.start()
@@ -54,7 +57,10 @@ def credit(app, log):
         log_output = True
         log.info('Start credit')
     # store the credit time in the info table
-    db.execute("UPDATE info SET value=%s WHERE key=%s", (credit_time, 'last_credit_time'))
+    db.execute("UPDATE info SET value=%s WHERE key=%s", (
+        credit_time,
+        'last_credit_time'
+    ))
 
     # set up for some stats
     # build the blank meta stats object
@@ -94,11 +100,12 @@ def credit(app, log):
         # calculate the details
         reward, percentage = calculate_order_reward(order, totals, rewards)
         # and save to the database
-        db.execute("INSERT INTO credits (time,key,exchange,unit,rank,side,order_id,"
-                   "provided,percentage,reward,paid) VALUES "
-                   "(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
-                   (credit_time, order[1], order[8], order[9], order[2], order[5],
-                    order[0], order[4], (percentage * 100), reward, 0))
+        db.execute(
+            "INSERT INTO credits (time,key,exchange,unit,rank,side,order_id,provided,"
+            "percentage,reward,paid) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+            (credit_time, order[1], order[8], order[9], order[2], order[5], order[0],
+             order[4], (percentage * 100), reward, 0)
+        )
         # update the original order too to indicate that it has been credited
         db.execute("UPDATE orders SET credited=%s WHERE id=%s", (1, order[0]))
 
@@ -107,22 +114,27 @@ def credit(app, log):
     for ex in app.config['exchanges']:
         stats_config[ex] = {}
         for unit in app.config['{}.units'.format(ex)]:
-            stats_config[ex][unit] = {'target': app.config['{}.{}.target'.format(ex,
-                                                                                 unit)],
-                                      'reward': app.config['{}.{}.reward'.format(ex,
-                                                                                 unit)]}
+            stats_config[ex][unit] = {
+                'target': app.config['{}.{}.target'.format(ex, unit)],
+                'reward': app.config['{}.{}.reward'.format(ex, unit)]
+            }
             for side in ['ask', 'bid']:
-                stats_config[ex][unit][side] = {'ratio': app.config['{}.{}.{'
-                                                                    '}.ratio'.format(
-                                                                     ex, unit, side)]}
+                stats_config[ex][unit][side] = {
+                    'ratio': app.config['{}.{}.{}.ratio'.format(
+                        ex,
+                        unit,
+                        side
+                    )]
+                }
                 for rank in app.config['{}.{}.{}.ranks'.format(ex, unit, side)]:
-                    stats_config[ex][unit][side][rank] = {'ratio':
-                                                          app.config['{}.{}.{}.{}.'
-                                                                     'ratio'.format(ex,
-                                                                                    unit,
-                                                                                    side,
-                                                                                    rank)]
-                                                          }
+                    stats_config[ex][unit][side][rank] = {
+                        'ratio': app.config['{}.{}.{}.{}.ratio'.format(
+                            ex,
+                            unit,
+                            side,
+                            rank
+                        )]
+                    }
 
     db.execute("INSERT INTO stats (time,meta,totals,rewards,config) VALUES (%s,%s,%s,"
                "%s,%s)",
