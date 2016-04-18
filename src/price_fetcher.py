@@ -288,7 +288,7 @@ class PriceFetcher(object):
         # Bitcoin
         if self.unit == 'btc':
             return self.fetch_price(['bitfinex', 'blockchain', 'bitcoin_average',
-                                     'coinbase', 'bitstamp'])
+                                     'coinbase', 'bitstamp', 'yahoo', 'google_official'])
         # Peercoin
         if self.unit == 'ppc':
             return self.fetch_price(['btce', 'coinmarketcap_ne', 'coinmarketcap_no'])
@@ -332,7 +332,7 @@ class PriceFetcher(object):
         try:
             r = requests.get(url)
             data = r.json()
-        except (ValueError, requests.exceptions.RequestException):
+        except (ValueError, requests.exceptions.RequestException, TypeError):
             return None
         if 'query' not in data:
             return None
@@ -356,7 +356,7 @@ class PriceFetcher(object):
             # some odd characters to remove before we get json
             data = r.text.replace("//", "").replace("[", "").replace("]", "")
             data = json.loads(data)
-        except (ValueError, requests.exceptions.RequestException):
+        except (ValueError, requests.exceptions.RequestException, TypeError):
             return None
         if 'l' not in data:
             return None
@@ -371,13 +371,13 @@ class PriceFetcher(object):
         try:
             r = requests.get(url)
             data = r.json()
-        except (ValueError, requests.exceptions.RequestException):
+        except (ValueError, requests.exceptions.RequestException, TypeError):
             return None
         if 'sell' not in data:
             return None
         if 'buy' not in data:
             return None
-        return float((data['sell'] + data['buy']) / 2)
+        return float((float(data['sell']) + float(data['buy'])) / float(2))
 
     def bitfinex(self):
         """
@@ -388,7 +388,7 @@ class PriceFetcher(object):
         try:
             r = requests.get(url)
             data = r.json()
-        except (ValueError, requests.exceptions.RequestException):
+        except (ValueError, requests.exceptions.RequestException, TypeError):
             return None
         if 'last_price' not in data:
             return None
@@ -403,7 +403,7 @@ class PriceFetcher(object):
         try:
             r = requests.get(url)
             data = r.json()
-        except (ValueError, requests.exceptions.RequestException):
+        except (ValueError, requests.exceptions.RequestException, TypeError):
             return None
         if 'USD' not in data:
             return None
@@ -420,7 +420,7 @@ class PriceFetcher(object):
         try:
             r = requests.get(url)
             data = r.json()
-        except (ValueError, requests.exceptions.RequestException):
+        except (ValueError, requests.exceptions.RequestException, TypeError):
             return None
         if 'last' not in data:
             return None
@@ -435,11 +435,11 @@ class PriceFetcher(object):
         try:
             r = requests.get(url)
             data = r.json()
-        except (ValueError, requests.exceptions.RequestException):
+        except (ValueError, requests.exceptions.RequestException, TypeError):
             return None
         if 'amount' not in data:
             return None
-        return data['amount']
+        return float(data['amount'])
 
     def bitstamp(self):
         """
@@ -450,7 +450,7 @@ class PriceFetcher(object):
         try:
             r = requests.get(url)
             data = r.json()
-        except (ValueError, requests.exceptions.RequestException):
+        except (ValueError, requests.exceptions.RequestException, TypeError):
             return None
         if 'last' not in data:
             return None
@@ -465,7 +465,7 @@ class PriceFetcher(object):
         try:
             r = requests.get(url)
             data = r.json()
-        except (ValueError, requests.exceptions.RequestException):
+        except (ValueError, requests.exceptions.RequestException, TypeError):
             return None
         if 'ticker' not in data:
             return None
@@ -482,7 +482,7 @@ class PriceFetcher(object):
         try:
             r = requests.get(url)
             data = r.json()
-        except (ValueError, requests.exceptions.RequestException):
+        except (ValueError, requests.exceptions.RequestException, TypeError):
             return None
         if 'price' not in data:
             return None
@@ -499,7 +499,7 @@ class PriceFetcher(object):
         try:
             r = requests.get(url)
             data = r.json()
-        except (ValueError, requests.exceptions.RequestException):
+        except (ValueError, requests.exceptions.RequestException, TypeError):
             return None
         if 'price' not in data:
             return None
