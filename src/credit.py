@@ -275,16 +275,16 @@ def liquidity_info(app, log, totals):
     :param app:
     :return:
     """
+    rpc = get_rpc(app)
     for exchange in app.config['exchanges']:
         for unit in app.config['{}.units'.format(exchange)]:
             for rank in app.config['{}.{}.bid.ranks'.format(exchange, unit)]:
-                identifier = "1:{}:{}:{}_1.{}".format(
+                identifier = "1:{}:{}:{}.{}".format(
                     'NBT{}'.format(unit.upper()),
                     exchange,
                     app.config['pool.name'],
                     rank
                 )
-                rpc = get_rpc(app)
                 if rpc is not None:
                     try:
                         # get a connection to the nud rpc interface
