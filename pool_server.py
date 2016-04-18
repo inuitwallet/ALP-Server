@@ -84,9 +84,6 @@ if 'test_exchange_2' in app.config['exchanges']:
 # save the start time of the server for reporting up-time
 app.config['start_time'] = time.time()
 
-# Set up a connection with nud
-log.info('set up a json-rpc connection with nud')
-
 # set up a price fetcher for each currency
 pf = {}
 for unit in app.config['units']:
