@@ -1,10 +1,13 @@
 #! /usr/bin/env python
-from bitcoinrpc.authproxy import AuthServiceProxy
+from socket import error
+from httplib import CannotSendRequest
+
+from bitcoinrpc.authproxy import AuthServiceProxy, JSONRPCException
 from hashlib import sha256
 from binascii import unhexlify
 
 
-def get_rpc(app):
+def get_rpc(app, log):
     """
     Return a connection to the nud  rpc  interface
     """
@@ -17,9 +20,9 @@ def get_rpc(app):
                 app.config['rpc.port']
             )
         )
-    except Exception:
+    except (JSONRPCException, error, CannotSendRequest, ValueError) as e:
+        log.error('Connection with nud failed - %s', e.message)
         rpc = None
-
     return rpc
 
 
