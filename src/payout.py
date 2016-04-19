@@ -47,7 +47,7 @@ def pay(app, log):
         # SendMany from nud. Report any error to log output
         try:
             # get an rpc connection
-            rpc = get_rpc(app)
+            rpc = get_rpc(app, log)
             rpc.sendmany("", user_payouts)
             log.info('payout successful: \'%s\'', json.dumps(user_payouts))
             # mark credits to paid addresses as paid
