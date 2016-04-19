@@ -6,17 +6,7 @@ import zmq
 
 __author__ = 'woolly_sammoth'
 
-
-def get_price(unit, log):
-    # price streamer doesn't handle usd, we can hard code the price here
-    if unit == 'usd':
-        price = 1.00
-        log.info('usd price set to 1.00')
-    else:
-        pf = PriceFetcher(unit, log)
-        pf.subscribe()
-        price = pf.price
-    return price
+global_context = zmq.Context()
 
 
 class PriceFetcher(object):
@@ -38,7 +28,7 @@ class PriceFetcher(object):
         # logger allows us to notify of price changes
         self.log = logger
         # this context is used for all the sockets that are created
-        self.context = zmq.Context()
+        self.context = global_context.instance()
         # These are server related properties
         self.protocol = 'tcp'
         self.base_url = 'stream.tradingbot.nu'
