@@ -275,7 +275,7 @@ def liquidity_info(app, log, totals):
     :param app:
     :return:
     """
-    rpc = get_rpc(app)
+    rpc = get_rpc(app, log)
     for exchange in app.config['exchanges']:
         for unit in app.config['{}.units'.format(exchange)]:
             for rank in app.config['{}.{}.bid.ranks'.format(exchange, unit)]:
