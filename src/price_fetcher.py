@@ -134,7 +134,6 @@ class PriceFetcher(object):
         if not self.ping:
             # if there's no reply from the ping
             # get the price from a normal feed
-            #self.log.warn('unable to ping price streamer')
             self.price = self.normal_price_feed()
             # then set a timer to try and register again in 30 seconds
             sub_timer = Timer(60.0, self.subscribe)
