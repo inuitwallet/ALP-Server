@@ -85,16 +85,7 @@ if 'test_exchange_2' in app.config['exchanges']:
 app.config['start_time'] = time.time()
 
 # set up a price fetcher for each currency
-pf = {}
-for unit in app.config['units']:
-    pf[unit] = PriceFetcher(unit, log)
-    # price streamer doesn't handle usd, we can hard code the price here
-    if unit == 'usd':
-        pf[unit].price = 1.00
-        log.info('usd price set to 1.00')
-        continue
-    # otherwise subscribe to the price feed
-    pf[unit].subscribe()
+pf = PriceFetcher(log)
 
 # Set the timer for credits
 log.info('running credit timer')

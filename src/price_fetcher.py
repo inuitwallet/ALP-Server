@@ -9,6 +9,10 @@ __author__ = 'woolly_sammoth'
 global_context = zmq.Context()
 
 
+def get_price(unit):
+    pass
+
+
 class PriceFetcher(object):
     """
     This object allows for connection and subscription to the NuBot price streamer.
@@ -18,13 +22,11 @@ class PriceFetcher(object):
     fails, a normal price feed is used to get the price.
     """
 
-    def __init__(self, unit, logger):
+    def __init__(self, logger):
         """
         Initialise the properties of the PriceFetcher object
         :return:
         """
-        # The unit this price fetcher subscribes for
-        self.unit = unit
         # logger allows us to notify of price changes
         self.log = logger
         # this context is used for all the sockets that are created
@@ -38,9 +40,10 @@ class PriceFetcher(object):
         self.currency_port = 0
         # these properties are used during the subscription
         self.session_id = uuid.uuid4()
-        self.currency_token = None
+        self.currency_tokens = {}
         self.ping = False
-        self.price = None
+        self.ping_socket = self.context.socket(zmq.REQ)
+        self.prices = {}
         # these properties are used to control the subscription
         self.sub = True
         self.terminate = None
@@ -120,7 +123,6 @@ class PriceFetcher(object):
                 continue
             self.price = float(response['args'][1])
             self.log.info('{} price set to {}'.format(self.unit, self.price))
-        return
 
     def health_thread(self):
         """
@@ -174,7 +176,7 @@ class PriceFetcher(object):
         :return:
         """
         # use a simple request socket
-        ping_socket = self.context.socket(zmq.REQ)
+
         # use the default ping port
         ping_socket.connect('{}://{}:{}'.format(self.protocol,
                                                 self.base_url,
