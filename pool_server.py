@@ -85,7 +85,9 @@ if 'test_exchange_2' in app.config['exchanges']:
 app.config['start_time'] = time.time()
 
 # set up a price fetcher object
+log.warn('setting up price fetcher')
 pf = PriceFetcher(app, log)
+log.warn('finished setting price fetcher')
 
 # Set the timer for credits
 log.info('running credit timer')
