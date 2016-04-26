@@ -377,13 +377,20 @@ def status(db):
     if not stats_data:
         return {'status': False, 'message': 'no statistics exist yet.'}
     response.set_header('Content-Type', 'application/json')
-    return json.dumps({'status': True, 'message': {'meta': stats_data['meta'],
-                                                   'totals': stats_data['totals'],
-                                                   'rewards': stats_data['rewards'],
-                                                   'prices': prices},
-                       'server_time': int(time.time()),
-                       'server_up_time': int((time.time() - app.config['start_time']))},
-                      sort_keys=True)
+    return json.dumps(
+        {
+            'status': True,
+            'message': {
+                'meta': stats_data['meta'],
+                'totals': stats_data['totals'],
+                'rewards': stats_data['rewards'],
+                'prices': prices
+            },
+            'server_time': int(time.time()),
+            'server_up_time': int((time.time() - app.config['start_time']))
+        },
+        sort_keys=True
+    )
 
 
 @app.get('/<user>/orders')
