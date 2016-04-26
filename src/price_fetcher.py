@@ -1,7 +1,6 @@
 import json
-from threading import Timer, Thread
+from threading import Timer
 import uuid
-
 import requests
 import zmq
 
