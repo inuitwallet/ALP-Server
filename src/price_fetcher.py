@@ -302,7 +302,10 @@ class StandardPriceFetcher(object):
             return None
         if 'buy' not in data:
             return None
-        return float((float(data['sell']) + float(data['buy'])) / float(2))
+        price = float((float(data['sell']) + float(data['buy'])) / float(2))
+        if unit == 'eur':
+            return float(1/price)
+        return price
 
     @staticmethod
     def bitfinex(unit):
