@@ -1,8 +1,8 @@
 #! /usr/bin/env python
-import errno
-from socket import error as socket_error
+from _socket import error
 from httplib import CannotSendRequest
 
+import requests
 from bitcoinrpc.authproxy import AuthServiceProxy, JSONRPCException
 from hashlib import sha256
 from binascii import unhexlify
@@ -13,7 +13,7 @@ def get_rpc(app, log):
     Return a connection to the nud  rpc  interface
     """
     try:
-        rpc = AuthServiceProxy(
+        r = requests.get(
             "http://{}:{}@{}:{}".format(
                 app.config['rpc.user'],
                 app.config['rpc.pass'],
@@ -21,8 +21,23 @@ def get_rpc(app, log):
                 app.config['rpc.port']
             )
         )
-    except (JSONRPCException, socket_error, CannotSendRequest, ValueError) as e:
-        log.error('Connection with nud failed - %s', e.message)
+        if r.status_code != requests.codes.OK:
+            rpc = None
+        else:
+            try:
+                rpc = AuthServiceProxy(
+                    "http://{}:{}@{}:{}".format(
+                        app.config['rpc.user'],
+                        app.config['rpc.pass'],
+                        app.config['rpc.host'],
+                        app.config['rpc.port']
+                    )
+                )
+            except (JSONRPCException, error, CannotSendRequest, ValueError) as e:
+                log.error('Connection with nud failed: {}'.format(e))
+                rpc = None
+    except requests.ConnectionError as e:
+        log.error('Connection with nud failed: {}'.format(e))
         rpc = None
     return rpc
 

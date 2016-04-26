@@ -441,7 +441,8 @@ class StandardPriceFetcher(object):
 
 class PriceFetcher(object):
 
-    def __init__(self, app):
+    def __init__(self, app, log):
+        self.log = log
         self.streamer = StreamerPriceFetcher()
         self.standard = StandardPriceFetcher()
         self.price = {}
@@ -465,10 +466,15 @@ class PriceFetcher(object):
         price_timer.daemon = True
         price_timer.start()
         for unit in app.config['units']:
+            self.log.info('fetching price for {}'.format(unit))
             if unit not in self.price:
                 self.price[unit] = None
             streamer_price = self.streamer.get_price(unit)
             if streamer_price is None:
                 self.price[unit] = self.standard.get_price(unit)
+                self.log.warn('price streamer offline!')
+                self.log.info('price set to {}'.format(self.price[unit]))
                 continue
             self.price[unit] = streamer_price
+            self.log.info('price set to {}'.format(self.price[unit]))
+
