@@ -2,6 +2,8 @@ import json
 import logging
 import unittest
 
+import time
+
 import os
 from os.path import join
 from src import database
@@ -233,6 +235,16 @@ class TestUrls(unittest.TestCase):
                     'address': 'BMJ2PJ1TNMwnTYUopQVxBrAPmmJjJjhd96',
                     'exchange': 'test_exchange', 'unit': 'btc'}
         self.app.post('/register', headers=self.headers, params=json.dumps(reg_data))
+        while self.app.post(
+                '/liquidity',
+                headers=self.headers,
+                params=json.dumps(data)
+            ).json == {
+            'message': 'unable to fetch current price for btc',
+            'success': False
+        }:
+            time.sleep(10)
+            continue
         self.assertDictEqual(self.app.post('/liquidity',
                                            headers=self.headers,
                                            params=json.dumps(data)).json,

@@ -446,6 +446,9 @@ class PriceFetcher(object):
         self.streamer = StreamerPriceFetcher()
         self.standard = StandardPriceFetcher()
         self.price = {}
+        for unit in app.config['units']:
+            if unit not in self.price:
+                self.price[unit] = None
         Thread(target=self.update_prices, kwargs={'app': app}).start()
         price_timer = Timer(
             60.0,

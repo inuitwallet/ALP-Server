@@ -39,6 +39,8 @@ def build(app, log, log_output=True):
         c.execute("INSERT INTO info VALUES (%s, %s)", ('next_payout_time', 0))
     conn.commit()
     conn.close()
+    if log_output:
+        log.info('finished configuring database schema')
     return
 
 
