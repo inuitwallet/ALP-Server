@@ -276,11 +276,13 @@ def liquidity(db):
         return {'success': valid['success'], 'message': valid['message']}
     orders = valid['orders']
     # get the price from the price feed
-    price = pf.price[unit]
-    if price is None:
+    db.execute("SELECT price FROM prices WHERE unit=%s ORDER BY id DESC LIMIT 1", (unit,))
+    db_price = db.fetchone()
+    if db_price is None:
         log.error('unable to fetch current price for %s -> %s', unit, user)
         return {'success': False, 'message': 'unable to fetch current price for {}'.
                 format(unit)}
+    price = db_price['price']
 
     # make sure the price is based in the correct units
     # price from price feed is in nbt/btc we potentially need btc/nbt
@@ -367,10 +369,18 @@ def status(db):
     # get the prices
     prices = {}
     for unit in app.config['units']:
-        log.info('for reference, price of {} is {}'.format(unit, pf.price[unit]))
+        db.execute(
+            "SELECT price FROM prices WHERE unit=%s ORDER BY id DESC LIMIT 1", (
+                unit,
+            )
+        )
+        price = db.fetchone()
+        if price is None:
+            log.error('no price found for {}'.format(unit))
+            continue
         prices[unit] = [
-            round(float(pf.price[unit]), 8),
-            round(1/float(pf.price[unit]), 8)
+            round(float(price['price']), 8),
+            round(1/float(price['price']), 8)
         ]
     # get the latest stats from the database using jsonb
     db.execute("SELECT * FROM stats ORDER BY id DESC LIMIT 1")

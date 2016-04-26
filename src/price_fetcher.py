@@ -3,6 +3,7 @@ from threading import Timer
 import uuid
 import requests
 import zmq
+from src import database
 
 __author__ = 'woolly_sammoth'
 
@@ -447,10 +448,6 @@ class PriceFetcher(object):
         self.log = log
         self.streamer = StreamerPriceFetcher()
         self.standard = StandardPriceFetcher()
-        self.price = {}
-        for unit in app.config['units']:
-            if unit not in self.price:
-                self.price[unit] = None
         self.update_prices(app)
 
     def update_prices(self, app):
@@ -462,16 +459,23 @@ class PriceFetcher(object):
         price_timer.name = 'price_timer'
         price_timer.daemon = True
         price_timer.start()
+        conn = database.get_db(app)
+        db = conn.cursor()
         for unit in app.config['units']:
             self.log.info('fetching price for {}'.format(unit))
-            if unit not in self.price:
-                self.price[unit] = None
             streamer_price = self.streamer.get_price(unit)
             if streamer_price is None:
-                self.price[unit] = self.standard.get_price(unit)
+                price = self.standard.get_price(unit)
                 self.log.warn('price streamer offline!')
-                self.log.info('{} price set to {}'.format(unit, self.price[unit]))
-                continue
-            self.price[unit] = streamer_price
-            self.log.info('{} price set to {}'.format(unit, self.price[unit]))
+            else:
+                price = streamer_price
+            db.execute(
+                "INSERT INTO prices (unit, price) VALUES (%s,%s)", (
+                    unit,
+                    price
+                )
+            )
+            self.log.info('{} price set to {}'.format(unit, price))
+        conn.commit()
+        conn.close()
 
