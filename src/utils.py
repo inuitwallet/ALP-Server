@@ -1,5 +1,6 @@
 #! /usr/bin/env python
-from socket import error
+import errno
+from socket import error as socket_error
 from httplib import CannotSendRequest
 
 from bitcoinrpc.authproxy import AuthServiceProxy, JSONRPCException
@@ -20,7 +21,7 @@ def get_rpc(app, log):
                 app.config['rpc.port']
             )
         )
-    except (JSONRPCException, error, CannotSendRequest, ValueError) as e:
+    except (JSONRPCException, socket_error, CannotSendRequest, ValueError) as e:
         log.error('Connection with nud failed - %s', e.message)
         rpc = None
     return rpc

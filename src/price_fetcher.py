@@ -1,270 +1,149 @@
 import json
-from threading import Thread, Timer
+from threading import Timer
 import uuid
+
 import requests
 import zmq
 
 __author__ = 'woolly_sammoth'
 
-global_context = zmq.Context()
 
+class StreamerPriceFetcher(object):
 
-def get_price(unit):
-    pass
-
-
-class PriceFetcher(object):
-    """
-    This object allows for connection and subscription to the NuBot price streamer.
-    This ensures that NuBot and the ALP server are working with the same price and
-    should mean a better $1 peg.
-    The health of the connection is checked every 30 seconds. If the health check
-    fails, a normal price feed is used to get the price.
-    """
-
-    def __init__(self, logger):
-        """
-        Initialise the properties of the PriceFetcher object
-        :return:
-        """
-        # logger allows us to notify of price changes
-        self.log = logger
-        # this context is used for all the sockets that are created
-        self.context = global_context.instance()
-        # These are server related properties
+    def __init__(self):
+        # set the base variables
         self.protocol = 'tcp'
         self.base_url = 'stream.tradingbot.nu'
         self.ping_port = 5555
         self.main_port = 5556
         self.secondary_port = 8889
-        self.currency_port = 0
-        # these properties are used during the subscription
+        # set a context of all sockets
+        global_context = zmq.Context()
+        self.context = global_context.instance()
+        self.req_socket = self.build_req_socket()
+        self.price = None
+        self.currency_details = {}
         self.session_id = uuid.uuid4()
-        self.currency_tokens = {}
-        self.ping = False
-        self.ping_socket = self.context.socket(zmq.REQ)
-        self.prices = {}
-        # these properties are used to control the subscription
-        self.sub = True
-        self.terminate = None
 
-    def subscribe(self):
-        """
-        Perform the necessary steps to verify the streamer server health,
-        request a token, request a subscription and finally subscribe
-        :param currency:
-        :return:
-        """
-        self.log.info('subscribing to price streamer')
-        # send a ping? to test streamer health
-        self.send_ping()
-        # if there's no reply the streamer is down and we should fall back to standard
-        # price fetching
-        if not self.ping:
-            # if there's no reply from the ping
-            # get the price from a normal feed
-            self.price = self.normal_price_feed()
-            # then set a timer to try and register again in 30 seconds
-            sub_timer = Timer(60.0, self.subscribe)
-            sub_timer.daemon = True
-            sub_timer.start()
-            return
-        # init with the streamer to get a token
-        self.request_init()
-        # make sure we got a token
-        if self.currency_token is None:
-            # if there's no valid token from the ping
-            # get the price from a normal feed
-            self.log.warn('price streamer didn\'t return token')
-            self.price = self.normal_price_feed()
-            # then set a timer to try and register again in 30 seconds
-            sub_timer = Timer(60.0, self.subscribe)
-            sub_timer.daemon = True
-            sub_timer.start()
-            return
-        # start to get the price and start subscription
-        self.start()
-        # make sure we got a response
-        if self.price is None:
-            # if there's no price from the ping
-            # get the price from a normal feed
-            self.log.warn('price streamer failed to return price')
-            self.price = self.normal_price_feed()
-            # then set a timer to try and register again in 30 seconds
-            sub_timer = Timer(60.0, self.subscribe)
-            sub_timer.daemon = True
-            sub_timer.start()
-            return
-        # finally subscribe in a thread
-        sub_thread = Thread(target=self.subscription_thread)
-        sub_thread.daemon = True
-        sub_thread.start()
-        # and set a timer thread to check the health of the server with ping?
-        ping_thread = Timer(60.0, self.health_thread)
-        ping_thread.daemon = True
-        ping_thread.start()
-
-    def subscription_thread(self):
-        """
-        Perform the subscription and price updating when necessary
-        :return:
-        """
-        # we use a subscription socket
-        subscription_socket = self.context.socket(zmq.SUB)
-        # connect to the currency port
-        subscription_socket.connect('{}://{}:{}'.format(self.protocol,
-                                                        self.base_url,
-                                                        self.currency_port))
-        # self.sub initialises as True and is set False by the 'unsubscribe' method
-        while self.sub:
-            # wait for a 'shiftWalls' command and parse the new price from it
-            response = subscription_socket.poll()
-            if response['command'] != 'shiftWalls':
-                continue
-            self.price = float(response['args'][1])
-            self.log.info('{} price set to {}'.format(self.unit, self.price))
-
-    def health_thread(self):
-        """
-        Ping periodically to check the health of the service.
-        Revert to standard feeds if the pong fails
-        :return:
-        """
-        self.log.info('checking price streamer health')
-        # send the ping
-        self.send_ping()
-        if not self.ping:
-            # if there's no reply from the ping
-            # get the price from a normal feed
-            #self.log.warn('unable to ping price streamer')
-            self.price = self.normal_price_feed()
-            # then set a timer to try and register again in 30 seconds
-            sub_timer = Timer(60.0, self.subscribe)
-            sub_timer.daemon = True
-            sub_timer.start()
-        else:
-            # if we got a valid reply set another timer to check again in 30 seconds
-            ping_thread = Timer(60.0, self.health_thread)
-            ping_thread.daemon = True
-            ping_thread.start()
-
-    def unsubscribe(self):
-        """
-        unsubscribe from the streamer service
-        :return:
-        """
-        # setting this False stops the subscription_thread while loop
-        self.sub = False
-        # simple request socket
-        cancel_socket = self.context.socket(zmq.REQ)
-        # the command port is the currency port + 100
-        cancel_socket.connect('{}://{}:{}'.format(self.protocol,
-                                                  self.base_url,
-                                                  (int(self.currency_port) + 100)))
+    def build_req_socket(self):
+        # create a socket for pings
+        req_socket = self.context.socket(zmq.REQ)
         # set the timeouts
-        cancel_socket.setsockopt(zmq.SNDTIMEO, 500)
-        cancel_socket.setsockopt(zmq.RCVTIMEO, 500)
-        # send the stop message
-        cancel_socket.send('{} {} stop'.format(self.currency_token, self.session_id))
-        # set the output for notifications
-        self.terminate = cancel_socket.recv()
-        cancel_socket.close()
+        req_socket.setsockopt(zmq.SNDTIMEO, 500)
+        req_socket.setsockopt(zmq.RCVTIMEO, 500)
+        return req_socket
+
+    def get_price(self, unit):
+        if not self.send_ping():
+            return None
+        if unit not in self.currency_details:
+            port, token = self.request_init(unit)
+            if port is None or token is None:
+                return None
+            self.currency_details[unit] = {'port': port, 'token': token}
+        return self.request_price(
+            self.currency_details['port'],
+            self.currency_details['token']
+        )
 
     def send_ping(self):
-        """
-        First task is to ping the server and test it is active
-        :return:
-        """
-        # use a simple request socket
-
         # use the default ping port
-        ping_socket.connect('{}://{}:{}'.format(self.protocol,
-                                                self.base_url,
-                                                self.ping_port))
-        # set the timeouts
-        ping_socket.setsockopt(zmq.SNDTIMEO, 500)
-        ping_socket.setsockopt(zmq.RCVTIMEO, 500)
-        # default to False
-        self.ping = False
+        self.req_socket.connect(
+            '{}://{}:{}'.format(
+                self.protocol,
+                self.base_url,
+                self.ping_port
+            )
+        )
+
+        ping = False
         # send the ping? request
-        ping_socket.send('ping?')
+        self.req_socket.send('ping?')
         # if the server is down, we will get a zmq timeout error.
         # catch that here and handle
         try:
-            response = ping_socket.recv()
+            response = self.req_socket.recv()
         except zmq.error.Again as e:
+            self.req_socket.close()
+            self.req_socket = self.build_req_socket()
             response = e
         # set True if we get the correct response
         if response == 'pong!':
-            self.ping = True
-        # remember to close the socket
-        ping_socket.close()
-        self.log.info('streamer ping for %s returned %s', self.unit, self.ping)
+            ping = True
+        return ping
 
-    def request_init(self):
+    def request_init(self, unit):
         """
         Once we have successfully ping/ponged, we request a token for the currency of
         interest.
         :param currency:
         :return:
         """
-        # request socket
-        init_socket = self.context.socket(zmq.REQ)
         # use the main port
-        init_socket.connect('{}://{}:{}'.format(self.protocol,
-                                                self.base_url,
-                                                self.main_port))
-        # set the timeouts
-        init_socket.setsockopt(zmq.SNDTIMEO, 500)
-        init_socket.setsockopt(zmq.RCVTIMEO, 500)
+        self.req_socket.connect(
+            '{}://{}:{}'.format(
+                self.protocol,
+                self.base_url,
+                self.main_port
+            )
+        )
         # send the necessary information
-        init_socket.send('{} {}:{} {}'.format(self.session_id, self.base_url,
-                                              self.secondary_port, self.unit))
+        self.req_socket.send(
+            '{} {}:{} {}'.format(
+                self.session_id,
+                self.base_url,
+                self.secondary_port,
+                unit
+            )
+        )
         # get the response as json
-        response = init_socket.recv_json()
+        response = self.req_socket.recv_json()
         # in case we get a different response to the one expected
         if 'args' not in response:
-            init_socket.close()
-            return
+            return None, None
         # otherwise parse out the args for later use
         args = list(response['args'])
-        self.currency_port = args[0]
-        self.currency_token = args[1]
-        init_socket.close()
+        port = args[0]
+        token = args[1]
+        return port, token
 
-    def start(self):
+    def request_price(self, port, token):
         """
         Instruct the streamer that we would like to subscribe.
         It responds with the price
         :return:
         """
-        # request socket
-        price_socket = self.context.socket(zmq.REQ)
         # currency manage port is currency_port + 100
-        price_socket.connect('{}://{}:{}'.format(self.protocol,
-                                                 self.base_url,
-                                                 (int(self.currency_port) + 100)))
-        # set the timeouts
-        price_socket.setsockopt(zmq.SNDTIMEO, 500)
-        price_socket.setsockopt(zmq.RCVTIMEO, 500)
+        self.req_socket.connect(
+            '{}://{}:{}'.format(
+                self.protocol,
+                self.base_url,
+                int(port) + 100
+            )
+        )
         # send the token and our session id
-        price_socket.send('{} {} start'.format(self.currency_token, self.session_id))
+        self.req_socket.send(
+            '{} {} start'.format(
+                token,
+                self.session_id
+            )
+        )
         try:
-            response = price_socket.recv_json()
-        except ValueError as e:
-            self.log.error('unable to start price streamer: %s', e)
-            price_socket.close()
-            return
+            response = self.req_socket.recv_json()
+        except ValueError:
+            self.req_socket.close()
+            self.req_socket = self.build_req_socket()
+            return None
         # if we got a different response to the one we were expecting
         if 'args' not in response:
-            price_socket.close()
-            return
+            return None
         # otherwise set the price
-        self.price = float(response['args'][1])
-        self.log.info('{} price set to {}'.format(self.unit, self.price))
-        price_socket.close()
+        return float(response['args'][1])
 
-    def normal_price_feed(self):
+
+class StandardPriceFetcher(object):
+
+    def get_price(self, unit):
         """
         If connection to the price streamer fails for whatever reason we fall back to
         standard price feeds.
@@ -272,47 +151,93 @@ class PriceFetcher(object):
         :return:
         """
         # many fiat currencies share a hierarchy
-        if self.unit in ['cny', 'hkd', 'php', 'jpy']:
-            return self.fetch_price(['yahoo', 'google_official'])
+        if unit in ['cny', 'hkd', 'php', 'jpy']:
+            return self.fetch_price(
+                'yahoo', [
+                   'google_official'
+                ],
+                unit
+            )
         # Eur is the same but with bitstamp as higher
-        if self.unit == 'eur':
-            return self.fetch_price(['bitstamp_eur', 'yahoo', 'google_official'])
+        if unit == 'eur':
+            return self.fetch_price(
+                'bitstamp_eur', [
+                    'yahoo',
+                    'google_official'
+                ],
+                unit
+            )
         # Bitcoin
-        if self.unit == 'btc':
-            return self.fetch_price(['bitfinex', 'blockchain', 'bitcoin_average',
-                                     'coinbase', 'bitstamp', 'yahoo', 'google_official'])
+        if unit == 'btc':
+            return self.fetch_price(
+                'bitfinex', [
+                    'blockchain',
+                    'bitcoin_average',
+                    'coinbase',
+                    'bitstamp',
+                    'yahoo',
+                    'google_official'
+                ],
+                unit
+            )
         # Peercoin
-        if self.unit == 'ppc':
-            return self.fetch_price(['btce', 'coinmarketcap_ne', 'coinmarketcap_no'])
+        if unit == 'ppc':
+            return self.fetch_price(
+                'btce', [
+                    'coinmarketcap_ne',
+                    'coinmarketcap_no'
+                ],
+                unit
+            )
         # Etherium
-        if self.unit == 'eth':
-            return self.fetch_price(['coinmarketcap_ne', 'coinmarketcap_no'])
+        if unit == 'eth':
+            return self.fetch_price(
+                'coinmarketcap_ne', [
+                    'coinmarketcap_no'
+                ],
+                unit
+            )
         # Ripple
-        if self.unit == 'xrp':
-            return self.fetch_price(['coinmarketcap_ne', 'coinmarketcap_no'])
-        if self.unit == 'ltc':
-            return self.fetch_price(['btce', 'coinmarketcap_ne', 'coinmarketcap_no',
-                                     'bitfinex'])
+        if unit == 'xrp':
+            return self.fetch_price(
+                'coinmarketcap_ne', [
+                    'coinmarketcap_no'
+                ],
+                unit
+            )
+        # Litecoin
+        if unit == 'ltc':
+            return self.fetch_price(
+                'btce', [
+                    'coinmarketcap_ne',
+                    'coinmarketcap_no',
+                    'bitfinex'
+                ],
+                unit
+            )
 
-    def fetch_price(self, feeds):
+    def fetch_price(self, main_feed, feeds, unit):
         """
         Loop through the supplied feeds and return the first price found
+        :param unit:
+        :param main_feed:
         :param self:
         :param feeds:
         :return:
         """
+        main_price = float(getattr(self, '{}'.format(main_feed))(unit))
+        prices = []
         for feed in feeds:
-            fetch_price = getattr(self, '{}'.format(feed))()
+            fetch_price = getattr(self, '{}'.format(feed))(unit)
             if fetch_price is not None:
-                self.log.info('%s price fetched from %s and set to %s',
-                              self.unit,
-                              feed,
-                              fetch_price)
-                return fetch_price
-        self.log.warn('failed to fetch price for %s', self.unit)
-        return None
+                prices.append(float(fetch_price))
+        average = float(sum(prices)) / float(len(prices))
+        if (main_price < (0.95 * average)) or (main_price > (1.05 * average)):
+            return average
+        return main_price
 
-    def yahoo(self):
+    @staticmethod
+    def yahoo(unit):
         """
         Yahoo Finance feed
         :return:
@@ -320,7 +245,7 @@ class PriceFetcher(object):
         url = 'https://query.yahooapis.com/v1/public/yql?q=select%20*%20from%20yahoo.' \
               'finance.xchange%20where%20pair%20in%20(%22USD{}%22)&format=json&' \
               'diagnostics=false&env=store%3A%2F%2Fdatatables.org%2' \
-              'Falltableswithkeys&callback='.format(self.unit.upper())
+              'Falltableswithkeys&callback='.format(unit.upper())
         try:
             r = requests.get(url)
             data = r.json()
@@ -334,15 +259,19 @@ class PriceFetcher(object):
             return None
         if 'Rate' not in data['query']['results']['rate']:
             return None
-        return float(data['query']['results']['rate']['Rate'])
+        price = float(data['query']['results']['rate']['Rate'])
+        if unit == 'btc':
+            return float(1/price)
+        return price
 
-    def google_official(self):
+    @staticmethod
+    def google_official(unit):
         """
         Google Price feed
         :return:
         """
         url = 'http://www.google.com/finance/info?q=CURRENCY%3aUSD{}'.format(
-            self.unit.upper())
+            unit.upper())
         try:
             r = requests.get(url)
             # some odd characters to remove before we get json
@@ -352,9 +281,13 @@ class PriceFetcher(object):
             return None
         if 'l' not in data:
             return None
-        return float(data['l'])
+        price = float(data['l'])
+        if unit == 'btc':
+            return float(1/price)
+        return price
 
-    def bitstamp_eur(self):
+    @staticmethod
+    def bitstamp_eur(unit):
         """
         Bitstamp feed for Eur
         :return:
@@ -371,12 +304,13 @@ class PriceFetcher(object):
             return None
         return float((float(data['sell']) + float(data['buy'])) / float(2))
 
-    def bitfinex(self):
+    @staticmethod
+    def bitfinex(unit):
         """
         bitfinex price feed
-        :return:
+        :return: price in nbt/btc
         """
-        url = 'https://api.bitfinex.com/v1/pubticker/{}usd'.format(self.unit.lower())
+        url = 'https://api.bitfinex.com/v1/pubticker/{}usd'.format(unit.lower())
         try:
             r = requests.get(url)
             data = r.json()
@@ -386,7 +320,8 @@ class PriceFetcher(object):
             return None
         return float(data['last_price'])
 
-    def blockchain(self):
+    @staticmethod
+    def blockchain(unit):
         """
         blockchain price feed
         :return:
@@ -403,7 +338,8 @@ class PriceFetcher(object):
             return None
         return data['USD']['last']
 
-    def bitcoin_average(self):
+    @staticmethod
+    def bitcoin_average(unit):
         """
         Bitcoin Average price feed
         :return:
@@ -418,7 +354,8 @@ class PriceFetcher(object):
             return None
         return data['last']
 
-    def coinbase(self):
+    @staticmethod
+    def coinbase(unit):
         """
         Coinbase price feed
         :return:
@@ -433,7 +370,8 @@ class PriceFetcher(object):
             return None
         return float(data['amount'])
 
-    def bitstamp(self):
+    @staticmethod
+    def bitstamp(unit):
         """
         Bitstamp price feed
         :return:
@@ -448,12 +386,13 @@ class PriceFetcher(object):
             return None
         return data['last']
 
-    def btce(self):
+    @staticmethod
+    def btce(unit):
         """
         BTCe price feed
         :return:
         """
-        url = 'https://btc-e.com/api/2/{}_usd/ticker/'.format(self.unit.lower())
+        url = 'https://btc-e.com/api/2/{}_usd/ticker/'.format(unit.lower())
         try:
             r = requests.get(url)
             data = r.json()
@@ -465,12 +404,13 @@ class PriceFetcher(object):
             return None
         return data['ticker']['last']
 
-    def coinmarketcap_ne(self):
+    @staticmethod
+    def coinmarketcap_ne(unit):
         """
         coinmarketcap nexuist price feed
         :return:
         """
-        url = 'http://coinmarketcap-nexuist.rhcloud.com/api/{}'.format(self.unit.lower())
+        url = 'http://coinmarketcap-nexuist.rhcloud.com/api/{}'.format(unit.lower())
         try:
             r = requests.get(url)
             data = r.json()
@@ -482,12 +422,13 @@ class PriceFetcher(object):
             return None
         return data['price']['usd']
 
-    def coinmarketcap_no(self):
+    @staticmethod
+    def coinmarketcap_no(unit):
         """
         Coinmarketcap North Pole price feed
         :return:
         """
-        url = 'http://coinmarketcap.northpole.ro/api/{}.json'.format(self.unit.lower())
+        url = 'http://coinmarketcap.northpole.ro/api/{}.json'.format(unit.lower())
         try:
             r = requests.get(url)
             data = r.json()
@@ -496,3 +437,38 @@ class PriceFetcher(object):
         if 'price' not in data:
             return None
         return data['price']
+
+
+class PriceFetcher(object):
+
+    def __init__(self, app):
+        self.streamer = StreamerPriceFetcher()
+        self.standard = StandardPriceFetcher()
+        self.price = {}
+        self.update_prices(app)
+        price_timer = Timer(
+            60.0,
+            self.update_prices,
+            kwargs={'app': app}
+        )
+        price_timer.name = 'credit_timer'
+        price_timer.daemon = True
+        price_timer.start()
+
+    def update_prices(self, app):
+        price_timer = Timer(
+            60.0,
+            self.update_prices,
+            kwargs={'app': app}
+        )
+        price_timer.name = 'credit_timer'
+        price_timer.daemon = True
+        price_timer.start()
+        for unit in app.config['units']:
+            if unit not in self.price:
+                self.price[unit] = None
+            streamer_price = self.streamer.get_price(unit)
+            if streamer_price is None:
+                self.price[unit] = self.standard.get_price(unit)
+                continue
+            self.price[unit] = streamer_price

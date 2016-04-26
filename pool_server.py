@@ -84,8 +84,8 @@ if 'test_exchange_2' in app.config['exchanges']:
 # save the start time of the server for reporting up-time
 app.config['start_time'] = time.time()
 
-# set up a price fetcher for each currency
-pf = PriceFetcher(log)
+# set up a price fetcher object
+pf = PriceFetcher(app)
 
 # Set the timer for credits
 log.info('running credit timer')
@@ -278,15 +278,11 @@ def liquidity(db):
         return {'success': valid['success'], 'message': valid['message']}
     orders = valid['orders']
     # get the price from the price feed
-    price = pf[unit].price
+    price = pf.price[unit]
     if price is None:
         log.error('unable to fetch current price for %s -> %s', unit, user)
         return {'success': False, 'message': 'unable to fetch current price for {}'.
                 format(unit)}
-    # clear existing orders for the user
-    db.execute("DELETE FROM orders WHERE key=%s AND exchange=%s AND unit=%s", (user,
-                                                                               exchange,
-                                                                               unit))
 
     # make sure the price is based in the correct units
     # price from price feed is in nbt/btc we potentially need btc/nbt
@@ -373,7 +369,7 @@ def status(db):
     # get the prices
     prices = {}
     for unit in app.config['units']:
-        prices[unit] = pf[unit].price
+        prices[unit] = [float(pf.price[unit]), 1/float(pf.price[unit])]
     # get the latest stats from the database using jsonb
     db.execute("SELECT * FROM stats ORDER BY id DESC LIMIT 1")
     stats_data = db.fetchone()
