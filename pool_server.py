@@ -367,7 +367,10 @@ def status(db):
     # get the prices
     prices = {}
     for unit in app.config['units']:
-        prices[unit] = [float(pf.price[unit]), 1/float(pf.price[unit])]
+        prices[unit] = [
+            round(float(pf.price[unit]), 8),
+            round(1/float(pf.price[unit]), 8)
+        ]
     # get the latest stats from the database using jsonb
     db.execute("SELECT * FROM stats ORDER BY id DESC LIMIT 1")
     stats_data = db.fetchone()
