@@ -367,6 +367,7 @@ def status(db):
     # get the prices
     prices = {}
     for unit in app.config['units']:
+        log.info('for reference, price of {} is {}'.format(unit, pf.price[unit]))
         prices[unit] = [
             round(float(pf.price[unit]), 8),
             round(1/float(pf.price[unit]), 8)

@@ -470,8 +470,8 @@ class PriceFetcher(object):
             if streamer_price is None:
                 self.price[unit] = self.standard.get_price(unit)
                 self.log.warn('price streamer offline!')
-                self.log.info('price set to {}'.format(self.price[unit]))
+                self.log.info('{} price set to {}'.format(unit, self.price[unit]))
                 continue
             self.price[unit] = streamer_price
-            self.log.info('price set to {}'.format(self.price[unit]))
+            self.log.info('{} price set to {}'.format(unit, self.price[unit]))
 
