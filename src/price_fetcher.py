@@ -423,10 +423,7 @@ class StandardPriceFetcher(object):
             return None
         if 'usd' not in data['price']:
             return None
-        price = float(data['price']['usd'])
-        if unit == 'ppc':
-            return float(1 / price)
-        return price
+        return float(data['price']['usd'])
 
     @staticmethod
     def coinmarketcap_no(unit):
@@ -442,10 +439,7 @@ class StandardPriceFetcher(object):
             return None
         if 'price' not in data:
             return None
-        price = float(data['price'])
-        if unit == 'ppc':
-            return float(1 / price)
-        return price
+        return float(data['price'])
 
 
 class PriceFetcher(object):
