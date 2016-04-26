@@ -1,5 +1,5 @@
 import json
-from threading import Timer
+from threading import Timer, Thread
 import uuid
 
 import requests
@@ -446,7 +446,7 @@ class PriceFetcher(object):
         self.streamer = StreamerPriceFetcher()
         self.standard = StandardPriceFetcher()
         self.price = {}
-        self.update_prices(app)
+        Thread(target=self.update_prices, kwargs={'app': app}).start()
         price_timer = Timer(
             60.0,
             self.update_prices,
