@@ -78,16 +78,12 @@ if 'poloniex' in app.config['exchanges']:
     wrappers['poloniex'] = src.exchanges.Poloniex()
 if 'test_exchange' in app.config['exchanges']:
     wrappers['test_exchange'] = src.exchanges.TestExchange()
-if 'test_exchange_2' in app.config['exchanges']:
-    wrappers['test_exchange_2'] = src.exchanges.TestExchange()
 
 # save the start time of the server for reporting up-time
 app.config['start_time'] = time.time()
 
 # set up a price fetcher object
-log.warn('setting up price fetcher')
 pf = PriceFetcher(app, log)
-log.warn('finished setting price fetcher')
 
 # Set the timer for credits
 log.info('running credit timer')

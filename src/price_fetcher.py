@@ -449,15 +449,7 @@ class PriceFetcher(object):
         for unit in app.config['units']:
             if unit not in self.price:
                 self.price[unit] = None
-        Thread(target=self.update_prices, kwargs={'app': app}).start()
-        price_timer = Timer(
-            60.0,
-            self.update_prices,
-            kwargs={'app': app}
-        )
-        price_timer.name = 'credit_timer'
-        price_timer.daemon = True
-        price_timer.start()
+        self.update_prices(app)
 
     def update_prices(self, app):
         price_timer = Timer(
@@ -465,7 +457,7 @@ class PriceFetcher(object):
             self.update_prices,
             kwargs={'app': app}
         )
-        price_timer.name = 'credit_timer'
+        price_timer.name = 'price_timer'
         price_timer.daemon = True
         price_timer.start()
         for unit in app.config['units']:
