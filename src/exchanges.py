@@ -97,33 +97,44 @@ class Poloniex(object):
 class CCEDK(object):
 
     def __init__(self):
-        self.pair_id = {}
-        while not self.pair_id:
-            url = 'https://www.ccedk.com/api/v1/stats/marketdepthfull'
-            try:
-                r = requests.get(url)
-                data = r.json()
-            except (ValueError, requests.exceptions.RequestException):
-                time.sleep(0.5)
-                continue
-            if 'response' not in data:
-                time.sleep(0.5)
-                continue
-            if 'entities' not in data['response']:
-                time.sleep(0.5)
-                continue
-            for unit in data['response']['entities']:
-                if unit['pair_name'][:4] == 'nbt/':
-                    self.pair_id[unit['pair_name'][4:]] = unit['pair_id']
+        self.pair_id = self.get_pair_id()
 
     def __repr__(self):
         return "ccedk"
+
+    @staticmethod
+    def get_pair_id():
+        url = 'https://www.ccedk.com/api/v1/stats/marketdepthfull'
+        try:
+            r = requests.get(url)
+            data = r.json()
+        except (ValueError, requests.exceptions.RequestException):
+            return None
+        if 'response' not in data:
+            return None
+        if 'entities' not in data['response']:
+            return None
+        pair_id = {}
+        for unit in data['response']['entities']:
+            if unit['pair_name'][:6] == 'usnbt/':
+                pair_id[unit['pair_name'][6:]] = unit['pair_id']
+        return pair_id
 
     def validate_request(self, **kwargs):
         user = kwargs.get('user')
         req = kwargs.get('req')
         sign = kwargs.get('sign')
         unit = kwargs.get('unit')
+        count = 0
+        while self.pair_id[unit] is None:
+            if count > 5:
+                return {
+                    'orders': [],
+                    'message': 'unable to get pair id from ccedk api',
+                    'success': False
+                }
+            self.pair_id = self.get_pair_id()
+            count += 1
         headers = {"Content-type": "application/x-www-form-urlencoded",
                    "Key": user,
                    "Sign": sign}
