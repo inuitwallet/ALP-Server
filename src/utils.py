@@ -21,7 +21,13 @@ def get_rpc(app, log):
                 app.config['rpc.port']
             )
         )
-        if r.status_code != requests.codes.OK:
+        get_rpc = True
+        try:
+            r.json()
+        except ValueError:
+	    get_rpc = False
+        
+        if not get_rpc:
             rpc = None
         else:
             try:
