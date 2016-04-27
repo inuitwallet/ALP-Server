@@ -64,7 +64,7 @@ class StreamerPriceFetcher(object):
         try:
             response = self.req_socket.recv()
         except zmq.error.Again as e:
-            self.req_socket.close()
+            self.req_socket.close(0)
             self.req_socket = self.build_req_socket()
             response = e
         # set True if we get the correct response
@@ -131,7 +131,7 @@ class StreamerPriceFetcher(object):
         try:
             response = self.req_socket.recv_json()
         except ValueError:
-            self.req_socket.close()
+            self.req_socket.close(0)
             self.req_socket = self.build_req_socket()
             return None
         # if we got a different response to the one we were expecting
