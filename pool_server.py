@@ -520,30 +520,69 @@ def user_credits(db, user):
 
 @app.error(code=500)
 def error500(error):
-    return json.dumps({'success': False, 'message': '500 error: {}'.format(error)})
+    return json.dumps(
+        {
+            'success': False,
+            'message': '500 error: {}'.format(
+                error.exception
+            )
+        }
+    )
 
 
 @app.error(code=502)
 def error502(error):
-    return json.dumps({'success': False, 'message': '502 error: {}'.format(error)})
+    return json.dumps(
+        {
+            'success': False,
+            'message': '502 error: {}'.format(
+                error.excpetion
+            )
+        }
+    )
 
 
 @app.error(code=503)
 def error503(error):
-    return json.dumps({'success': False, 'message': '503 error: {}'.format(error)})
+    return json.dumps(
+        {
+            'success': False,
+            'message': '503 error: {}'.format(
+                error.exception
+            )
+        }
+    )
 
 
 @app.error(code=404)
 def error404(error):
-    return json.dumps({'success': False, 'message': '404 {} not found: {}'
-                                                    ''.format(request.url, error)})
+    return json.dumps(
+        {
+            'success': False,
+            'message': '404 {} not found: {}'.format(
+                request.url,
+                error.exception
+            )
+        }
+    )
 
 
 @app.error(code=405)
 def error405(error):
-    return json.dumps({'success': False, 'message': '405 error. '
-                                                    'Incorrect HTTP method used: '
-                                                    '{}'.format(error)})
+    return json.dumps(
+        {
+            'success': False,
+            'message': '405 error. Incorrect HTTP method used: {}'.format(
+                error.exception
+            )
+        }
+    )
+
+
+@app.hook('config')
+def on_config_change(key, value):
+    print '{} changed to {}'.format(key, value)
+    return
 
 
 if __name__ == '__main__':
