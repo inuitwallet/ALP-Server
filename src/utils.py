@@ -43,7 +43,15 @@ def get_rpc(app, log):
 
 
 def supported_exchanges():
-    return ['bittrex', 'poloniex', 'ccedk', 'bter', 'cryptsy', 'test_exchange']
+    return [
+        'bittrex',
+        'poloniex',
+        'ccedk',
+        'bter',
+        'cryptsy',
+        'test_exchange',
+        'liquidity_test'
+    ]
 
 
 class AddressCheck(object):

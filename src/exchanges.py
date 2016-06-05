@@ -250,3 +250,41 @@ class TestExchange(object):
                            'amount': random.randint(0, 250),
                            'side': 'bid' if int(x) % 2 == 0 else 'ask'})
         return {'orders': orders, 'message': 'success'}
+
+
+class LiquidityTest(object):
+
+    def __init__(self):
+        pass
+
+    def __repr__(self):
+        return 'liquidity_test'
+
+    @staticmethod
+    def validate_request(**kwargs):
+        """
+        user = total bid
+        unit = total ask
+        req = number of orders bid
+        sign = number of orders ask
+        """
+        bid = kwargs.get('req')
+        ask = kwargs.get('sign')
+        total_bid = float(bid['total'])
+        total_ask = float(ask['total'])
+        number_bid = float(bid['number'])
+        number_ask = float(ask['number'])
+        bid_amount = total_bid / number_bid
+        ask_amount = total_ask / number_ask
+        orders = []
+        for x in xrange(int(number_bid)):
+            orders.append({'price': 1,
+                           'id': (x + random.randint(0, 25000)),
+                           'amount': bid_amount,
+                           'side': 'bid'})
+        for x in xrange(int(number_ask)):
+            orders.append({'price': 1,
+                           'id': (x + random.randint(0, 25000)),
+                           'amount': ask_amount,
+                           'side': 'ask'})
+        return {'orders': orders, 'message': 'success'}

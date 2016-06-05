@@ -43,7 +43,7 @@ def credit(app, log):
     log_output = False
 
     # reload the config
-    config.load(app, log, app.config['config_dir'], log_output)
+    #config.load(app, log, app.config['config_dir'], log_output)
 
     # calculate the credit time
     credit_time = int(time.time())
@@ -103,11 +103,28 @@ def credit(app, log):
         db.execute(
             "INSERT INTO credits (time,key,exchange,unit,rank,side,order_id,provided,"
             "percentage,reward,paid) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
-            (credit_time, order[1], order[8], order[9], order[2], order[5], order[0],
-             order[4], (percentage * 100), reward, 0)
+            (
+                credit_time,
+                order[1],
+                order[8],
+                order[9],
+                order[2],
+                order[5],
+                order[0],
+                order[4],
+                (percentage * 100),
+                reward,
+                0
+            )
         )
         # update the original order too to indicate that it has been credited
-        db.execute("UPDATE orders SET credited=%s WHERE id=%s", (1, order[0]))
+        db.execute(
+            "UPDATE orders SET credited=%s WHERE id=%s",
+            (
+                1,
+                order[0]
+            )
+        )
 
     # write the stats to the database
     stats_config = {}
@@ -136,12 +153,22 @@ def credit(app, log):
                         )]
                     }
 
-    db.execute("INSERT INTO stats (time,meta,totals,rewards,config) VALUES (%s,%s,%s,"
-               "%s,%s)",
-               (credit_time, json.dumps(meta), json.dumps(totals), json.dumps(rewards),
-                json.dumps(stats_config)))
+    db.execute(
+        "INSERT INTO stats (time,meta,totals,rewards,config) VALUES (%s,%s,%s,%s,%s)",
+        (
+            credit_time,
+            json.dumps(meta),
+            json.dumps(totals),
+            json.dumps(rewards),
+            json.dumps(stats_config)
+        )
+    )
     conn.commit()
     conn.close()
+
+    # based on the totals we can adjust the pool config ready for the next round
+    config.calculate(app, log, totals)
+
     if log_output:
         log.info('End credit')
     return
@@ -227,24 +254,35 @@ def calculate_reward(app, totals):
             for side in ['ask', 'bid']:
                 rewards[exchange][unit][side] = {}
                 # reward depends on the percentage of the target liquidity being provided
-                total_liq = float(totals[exchange][unit]['total'])
-                target_liq = float(app.config['{}.{}.target'.format(exchange, unit)])
-                target_percentage = total_liq / target_liq
+                # total is the total amount provided for this exchange.unit.side
+                total_liquidity = float(totals[exchange][unit][side]['total'])
+                # target liquidity is the target for the exchange.unit multiplied by
+                # the ratio for this exchange.unit.side
+                target_liquidity = float(
+                    app.config['{}.{}.target'.format(exchange, unit)]
+                ) * float(
+                    app.config['{}.{}.{}.ratio'.format(exchange, unit, side)]
+                )
+                # calculate what percentage of the calculated target is reached by the
+                # liquidity provided
+                target_percentage = total_liquidity / target_liquidity
                 if target_percentage > 1.00:
                     target_percentage = 1.00
                 for rank in app.config['{}.{}.{}.ranks'.format(exchange, unit, side)]:
                     # reward is split by the rank and side ratios
-                    reward = float(app.config['{}.{}.reward'.format(exchange, unit)])
-                    side_ratio = float(app.config['{}.{}.{}.ratio'.format(exchange,
-                                                                          unit,
-                                                                          side)])
-                    rank_ratio = float(app.config['{}.{}.{}.{}.ratio'.format(exchange,
-                                                                             unit,
-                                                                             side,
-                                                                             rank)])
-                    rewards[exchange][unit][side][rank] = round(((reward * side_ratio) *
-                                                                rank_ratio) *
-                                                                target_percentage, 8)
+                    reward = float(
+                        app.config['{}.{}.reward'.format(exchange, unit)]
+                    )
+                    side_ratio = float(
+                        app.config['{}.{}.{}.ratio'.format(exchange, unit, side)]
+                    )
+                    rank_ratio = float(
+                        app.config['{}.{}.{}.{}.ratio'.format(exchange, unit, side, rank)]
+                    )
+                    rewards[exchange][unit][side][rank] = round(
+                        ((reward * side_ratio) * rank_ratio) * target_percentage,
+                        8
+                    )
     return rewards
 
 

@@ -78,6 +78,8 @@ if 'poloniex' in app.config['exchanges']:
     wrappers['poloniex'] = src.exchanges.Poloniex()
 if 'test_exchange' in app.config['exchanges']:
     wrappers['test_exchange'] = src.exchanges.TestExchange()
+if 'liquidity_test' in app.config['exchanges']:
+    wrappers['liquidity_test'] = src.exchanges.LiquidityTest()
 
 # save the start time of the server for reporting up-time
 app.config['start_time'] = time.time()
@@ -229,8 +231,10 @@ def liquidity(db):
     log.info('/liquidity')
     # Check the content type
     if not check_headers(request.headers):
-        return {'success': False, 'message': 'Content-Type header must be set to '
-                                             '\'application/json\''}
+        return {
+            'success': False,
+            'message': 'Content-Type header must be set to \'application/json\''
+        }
     # Get the post parameters
     try:
         user = request.json.get('user')
@@ -261,10 +265,16 @@ def liquidity(db):
         return {'success': False, 'message': '{} is not supported'.format(exchange)}
     if unit not in app.config['{}.units'.format(exchange)]:
         log.warn('invalid unit')
-        return {'success': False, 'message': '{} is not supported on {}'.format(unit,
-                                                                                exchange)}
+        return {'success': False, 'message': '{} is not supported on {}'.format(
+            unit, exchange
+        )}
     # check that the user is registered
-    db.execute("SELECT id FROM users WHERE key=%s", (user,))
+    db.execute(
+        "SELECT id FROM users WHERE key=%s",
+        (
+            user,
+        )
+    )
     user_check = db.fetchone()
     if user_check is None:
         log.error('user %s is not registered', user)
@@ -312,12 +322,25 @@ def liquidity(db):
                 order_rank = tolerance[0]
                 break
         # save the order details
-        db.execute("INSERT INTO orders (key,rank,order_id,order_amount,side,order_price,"
-                   "server_price,exchange,unit,deviation,tolerance,credited) VALUES "
-                   "(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
-                   (user, order_rank, str(order['id']), float(order['amount']),
-                    str(order['side']), float(order['price']), float(price), exchange,
-                    unit, float(order_deviation), float(tolerance[1]), 0))
+        db.execute(
+            "INSERT INTO orders (key,rank,order_id,order_amount,side,order_price,"
+            "server_price,exchange,unit,deviation,tolerance,credited) VALUES "
+            "(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+            (
+                user,
+                order_rank,
+                str(order['id']),
+                float(order['amount']),
+                str(order['side']),
+                float(order['price']),
+                float(price),
+                exchange,
+                unit,
+                float(order_deviation),
+                float(tolerance[1]),
+                0
+            )
+        )
     log.info('user %s orders saved for validation', user)
     return {'success': True, 'message': 'orders saved for validation'}
 
@@ -339,18 +362,22 @@ def exchanges():
                 'target': app.config['{}.{}.target'.format(ex, u)]
             }
             for side in ['ask', 'bid']:
-                data[ex][u][side] = {'ratio': app.config['{}.{}.ask.ratio'.format(ex, u)]}
+                data[ex][u][side] = {
+                    'ratio': app.config['{}.{}.{}.ratio'.format(ex, u, side)]
+                }
                 for rank in app.config['{}.{}.{}.ranks'.format(ex, u, side)]:
                     try:
-                        tolerance = app.config['{}.{}.{}.{}.tolerance'.format(ex,
-                                                                              u,
-                                                                              side,
-                                                                              rank)]
+                        tolerance = app.config[
+                            '{}.{}.{}.{}.tolerance'.format(
+                                ex, u, side, rank
+                            )
+                        ]
                     except KeyError:
                         tolerance = 1.00
                     data[ex][u][side][rank] = {
-                        'ratio': app.config['{}.{}.{}.{}.ratio'.format(ex, u,
-                                                                       side, rank)],
+                        'ratio': app.config[
+                            '{}.{}.{}.{}.ratio'.format(ex, u, side, rank)
+                        ],
                         'tolerance': tolerance
                     }
     return data
@@ -418,9 +445,14 @@ def user_orders(db, user):
         log.error('user %s does not exist', user)
         return {'success': False, 'message': 'user {} is not registered'.format(user)}
     # fetch the users orders
-    db.execute("SELECT id,order_id,exchange,unit,side,rank,order_amount,order_price,"
-               "server_price,deviation,tolerance,credited FROM orders WHERE key=%s ORDER "
-               "BY id DESC LIMIT 100", (user,))
+    db.execute(
+        "SELECT id,order_id,exchange,unit,side,rank,order_amount,order_price,"
+        "server_price,deviation,tolerance,credited FROM orders WHERE key=%s ORDER "
+        "BY id DESC LIMIT 100",
+        (
+            user,
+        )
+    )
     orders = db.fetchall()
     # build a list for the order output
     output_orders = []
@@ -428,37 +460,50 @@ def user_orders(db, user):
     for order in orders:
         # get credit detail if the order has been credited
         if order['credited'] == 1:
-            db.execute("SELECT time,percentage,reward FROM credits WHERE "
-                       "order_id=%s", (order['id'],))
+            db.execute(
+                "SELECT time,percentage,reward FROM credits WHERE order_id=%s",
+                (
+                    order['id'],
+                )
+            )
             cred = db.fetchone()
-            order['credit_info'] = {'credited_time': int(cred['time']),
-                                    'percentage_of_rank': round(cred['percentage'], 8),
-                                    'credit_amount': round(cred['reward'], 8)}
+            order['credit_info'] = {
+                'credited_time': int(cred['time']),
+                'percentage_of_rank': round(cred['percentage'], 8),
+                'credit_amount': round(cred['reward'], 8)
+            }
             # get other details from the stats table
-            db.execute("SELECT totals->'{ex}'->'{unit}'->'total' as unit_total, "
-                       "config->'{ex}'->'{unit}'->'target' as unit_target, "
-                       "config->'{ex}'->'{unit}'->'reward' as unit_reward, "
-                       "config->'{ex}'->'{unit}'->'{side}'->'ratio' as side_ratio, "
-                       "totals->'{ex}'->'{unit}'->'{side}'->'{rank}' as rank_total, "
-                       "config->'{ex}'->'{unit}'->'{side}'->'{rank}'->'ratio' as "
-                       "rank_ratio, "
-                       "rewards->'{ex}'->'{unit}'->'{side}'->'{rank}' as rank_reward "
-                       "FROM stats WHERE time=%s".format(ex=order['exchange'],
-                                                         unit=order['unit'],
-                                                         side=order['side'],
-                                                         rank=order['rank']),
-                       (order['credit_info']['credited_time'], ))
+            db.execute(
+                "SELECT totals->'{ex}'->'{unit}'->'total' as unit_total, "
+                "config->'{ex}'->'{unit}'->'target' as unit_target, "
+                "config->'{ex}'->'{unit}'->'reward' as unit_reward, "
+                "config->'{ex}'->'{unit}'->'{side}'->'ratio' as side_ratio, "
+                "totals->'{ex}'->'{unit}'->'{side}'->'{rank}' as rank_total, "
+                "config->'{ex}'->'{unit}'->'{side}'->'{rank}'->'ratio' as "
+                "rank_ratio, "
+                "rewards->'{ex}'->'{unit}'->'{side}'->'{rank}' as rank_reward "
+                "FROM stats WHERE time=%s".format(
+                    ex=order['exchange'],
+                    unit=order['unit'],
+                    side=order['side'],
+                    rank=order['rank']),
+                (
+                    order['credit_info']['credited_time'],
+                )
+            )
             stats = db.fetchone()
             order['credit_info']['unit_total_liquidity'] = stats['unit_total']
             order['credit_info']['unit_target'] = stats['unit_target']
             order['credit_info']['unit_reward'] = stats['unit_reward']
             unit_ratio = stats['unit_total'] / stats['unit_target']
             unit_ratio = 1.0 if unit_ratio >= 1.0 else unit_ratio
-            order['credit_info']['calculated_unit_reward'] = stats['unit_'
-                                                                   'reward'] * unit_ratio
+            order['credit_info']['calculated_unit_reward'] = stats[
+                                                                 'unit_reward'
+                                                             ] * unit_ratio
             order['credit_info']['side_ratio'] = stats['side_ratio']
             order['credit_info']['side_reward'] = order['credit_info'][
-                'calculated_unit_reward'] * stats['side_ratio']
+                                                    'calculated_unit_reward'
+                                                  ] * stats['side_ratio']
             order['credit_info']['rank_total_liquidity'] = stats['rank_total']
             order['credit_info']['rank_reward'] = stats['rank_reward']
             order['credit_info']['rank_ratio'] = stats['rank_ratio']
@@ -524,7 +569,7 @@ def error500(error):
         {
             'success': False,
             'message': '500 error: {}'.format(
-                error.exception
+                error.body
             )
         }
     )
@@ -536,7 +581,7 @@ def error502(error):
         {
             'success': False,
             'message': '502 error: {}'.format(
-                error.excpetion
+                error.body
             )
         }
     )
@@ -548,7 +593,7 @@ def error503(error):
         {
             'success': False,
             'message': '503 error: {}'.format(
-                error.exception
+                error.body
             )
         }
     )
@@ -559,9 +604,8 @@ def error404(error):
     return json.dumps(
         {
             'success': False,
-            'message': '404 {} not found: {}'.format(
-                request.url,
-                error.exception
+            'message': '404 error: {}'.format(
+                error.body
             )
         }
     )
@@ -572,8 +616,8 @@ def error405(error):
     return json.dumps(
         {
             'success': False,
-            'message': '405 error. Incorrect HTTP method used: {}'.format(
-                error.exception
+            'message': '405 error: {}'.format(
+                error.body
             )
         }
     )
@@ -581,7 +625,10 @@ def error405(error):
 
 @app.hook('config')
 def on_config_change(key, value):
-    print '{} changed to {}'.format(key, value)
+    for k in ['pool', 'rpc', 'db', 'exchanges', 'units', 'ranks']:
+        if k in key:
+            return
+    log.info('config update: %s set to %s', key, value)
     return
 
 

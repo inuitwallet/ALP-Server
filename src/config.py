@@ -7,6 +7,49 @@ import utils
 __author__ = 'sammoth'
 
 
+def calculate(app, log, totals):
+    """
+    Simple AI to adjust pool config.
+    This allows for the reward/side ratios and other parameters to adjust to focus
+    liquidity where ti is needed.
+    Things we can adjust:
+        exchange.unit.target
+        exchange.unit.reward
+        exchange.unit.side.ratio
+        exchange.unit.side.rank.tolerance
+        exchange.unit.side.rank.ratio
+    :param app: app object
+    :param log: logger object
+    :param totals: dictionary containing calculated round totals
+    :return:
+    """
+    # first rule is to adjust the rewards and targets based on the amount of liquidity
+    # provided on each side as suggested by Cybnate here
+    # https://discuss.nubits.com/t/passed-nupool-8-alpv2/3631/215
+    # (1 - (this_side / total_of_both_sides))
+    for ex in app.config['exchanges']:
+        for unit in app.config['{}.units'.format(ex)]:
+            if totals[ex][unit]['total'] == 0:
+                log.warn('no liquidity present on %s.%s', ex, unit)
+                continue
+            ask_ratio = (
+                1 - (
+                    float(
+                        totals[ex][unit]['ask']['total']
+                    ) / float(
+                        totals[ex][unit]['total']
+                    )
+                )
+            )
+            if ask_ratio > 0.9:
+                ask_ratio = 0.9
+            if ask_ratio < 0.1:
+                ask_ratio = 0.1
+            # set the ratios
+            app.config['{}.{}.ask.ratio'.format(ex, unit)] = ask_ratio
+            app.config['{}.{}.bid.ratio'.format(ex, unit)] = 1 - ask_ratio
+
+
 def load(app, log, config_dir, log_output):
     """
     Helper method to load pool config
@@ -151,4 +194,5 @@ def check_exchange_config(config_file):
                 return False, "The ask and bid ratios don't add up to 1.0"
 
     return True, 'All complete'
+
 
