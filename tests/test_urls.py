@@ -270,7 +270,7 @@ class TestUrls(unittest.TestCase):
                             u'tolerance': 1.0}
                     },
                     u'bid': {
-                        u'ratio': 0.6,
+                        u'ratio': 0.4,
                         u'rank_1': {
                             u'ratio': 0.8,
                             u'tolerance': 0.0105
